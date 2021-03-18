@@ -1,11 +1,6 @@
 #![allow(unused_imports)]
-
-/// Tutorials followed:
-///
-/// https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/D3D12HelloTriangle.cpp
-///
-/// https://www.braynzarsoft.net/viewtutorial/q16390-directx-12-index-buffers
-///
+/// CD3DX12 Helper functions from here:
+/// https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h
 use bindings::{
     windows::win32::direct3d11::*, windows::win32::direct3d12::*, windows::win32::direct3d_hlsl::*,
     windows::win32::direct_composition::*, windows::win32::display_devices::*,
