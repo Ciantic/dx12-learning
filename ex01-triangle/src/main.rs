@@ -460,7 +460,8 @@ impl Window {
         // Resource initialization ------------------------------------------
         unsafe {
             // allocators[current_frame].Reset().ok()?;
-            list.Reset(&allocators[current_frame], None).ok()?;
+            list.Reset(&allocators[current_frame], &pipeline_state)
+                .ok()?;
         }
 
         let (vertex_buffer, vertex_buffer_view, vertex_buffer_upload) = unsafe {
