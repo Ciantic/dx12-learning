@@ -453,8 +453,8 @@ pub fn memcpy_subresource(
             let src_slice = ((*src).p_data as usize) + ((*src).slice_pitch as usize) * z;
             for y in 0..(num_rows as usize) {
                 std::ptr::copy_nonoverlapping(
-                    (src_slice + ((*src).row_pitch as usize) * y) as *mut c_void,
-                    (dest_slice + (*dest).row_pitch * y) as *mut c_void,
+                    (src_slice + ((*src).row_pitch as usize) * y) as *mut u8,
+                    (dest_slice + (*dest).row_pitch * y) as *mut u8,
                     row_size_in_bytes,
                 );
             }
