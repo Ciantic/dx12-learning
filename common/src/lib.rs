@@ -7,15 +7,19 @@ use bindings::{
     windows::win32::dxgi::*, windows::win32::gdi::*, windows::win32::menus_and_resources::*,
     windows::win32::system_services::*, windows::win32::windows_and_messaging::*,
 };
-use std::{convert::TryInto, ffi::CString};
+use std::{convert::TryInto, ffi::CString, mem};
 use std::{ffi::c_void, ptr::null_mut};
 use windows::{Abi, Interface};
 
 pub struct Buffers {
-    upload_buffer: ID3D12Resource,
-    gpu_buffer: ID3D12Resource,
+    pub upload_buffer: ID3D12Resource,
+    pub gpu_buffer: ID3D12Resource,
 }
 
+/// Creates a gpu buffer from given data
+///
+/// Returns also upload buffer that must be kept alive until the command list is
+/// executed.
 pub fn create_default_buffer(
     device: &ID3D12Device,
     list: &ID3D12GraphicsCommandList,
@@ -52,7 +56,7 @@ pub fn create_default_buffer(
             .and_some(ptr)
     }?;
 
-    let sub_data = D3D12_SUBRESOURCE_DATA {
+    let mut sub_data = D3D12_SUBRESOURCE_DATA {
         p_data: init_data,
         row_pitch: byte_size as _,
         slice_pitch: byte_size as _,
@@ -71,9 +75,17 @@ pub fn create_default_buffer(
             ),
         );
     }
-    /*
-    TODO: update_subresources(list, default_buffer.Get(), upload_buffer.Get(), 0, 0, 1, &sub_data);
-    */
+
+    update_subresources(
+        &list,
+        &default_buffer,
+        &upload_buffer,
+        0,
+        0,
+        1,
+        &mut sub_data,
+        1,
+    )?;
 
     unsafe {
         list.ResourceBarrier(
@@ -87,12 +99,16 @@ pub fn create_default_buffer(
             ),
         );
     }
-    todo!()
+    Ok(Buffers {
+        gpu_buffer: default_buffer,
+        upload_buffer,
+    })
 }
 
-pub fn cd3dx12_heap_properties_with_type(t: D3D12_HEAP_TYPE) -> D3D12_HEAP_PROPERTIES {
+pub fn cd3dx12_heap_properties_with_type(heap_type: D3D12_HEAP_TYPE) -> D3D12_HEAP_PROPERTIES {
+    // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L423-L433
     D3D12_HEAP_PROPERTIES {
-        r#type: t,
+        r#type: heap_type,
         cpu_page_property: D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
         memory_pool_preference: D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN,
         creation_node_mask: 1,
@@ -101,6 +117,7 @@ pub fn cd3dx12_heap_properties_with_type(t: D3D12_HEAP_TYPE) -> D3D12_HEAP_PROPE
 }
 
 pub const fn cd3dx12_depth_stencil_desc_default() -> D3D12_DEPTH_STENCIL_DESC {
+    // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L177-L189
     D3D12_DEPTH_STENCIL_DESC {
         depth_enable: BOOL(1),
         depth_write_mask: D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ALL,
@@ -124,6 +141,7 @@ pub const fn cd3dx12_depth_stencil_desc_default() -> D3D12_DEPTH_STENCIL_DESC {
 }
 
 pub fn cd3dx12_blend_desc_default() -> D3D12_BLEND_DESC {
+    // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L323-L338
     D3D12_BLEND_DESC {
         alpha_to_coverage_enable: BOOL(0),
         independent_blend_enable: BOOL(0),
@@ -148,10 +166,8 @@ pub fn cd3dx12_blend_desc_default() -> D3D12_BLEND_DESC {
     }
 }
 
-///
-///
-/// https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L349-L359
 pub fn cd3dx12_rasterizer_desc_default() -> D3D12_RASTERIZER_DESC {
+    // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L349-L359
     D3D12_RASTERIZER_DESC {
         fill_mode: D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID,
         cull_mode: D3D12_CULL_MODE::D3D12_CULL_MODE_BACK,
@@ -168,14 +184,12 @@ pub fn cd3dx12_rasterizer_desc_default() -> D3D12_RASTERIZER_DESC {
     }
 }
 
-///
-///
-/// https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L1754-L1756
 pub fn cd3dx12_resource_desc_buffer(
     width: u64,
     flags: Option<D3D12_RESOURCE_FLAGS>,
     alignment: Option<u64>,
 ) -> D3D12_RESOURCE_DESC {
+    // https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L1754-L1756
     // Order follows the C++ function call order
     D3D12_RESOURCE_DESC {
         dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER,
@@ -201,6 +215,7 @@ pub fn cd3dx12_resource_barrier_transition(
     subresource: Option<u32>,
     flags: Option<D3D12_RESOURCE_BARRIER_FLAGS>,
 ) -> D3D12_RESOURCE_BARRIER {
+    // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L728-L744
     let subresource = subresource.unwrap_or(D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
     let flags = flags.unwrap_or(D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE);
 
@@ -216,41 +231,170 @@ pub fn cd3dx12_resource_barrier_transition(
     barrier
 }
 
-/*
-// https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L2081-L2113
-// Heap-allocating UpdateSubresources implementation
-inline UINT64 UpdateSubresources(
-    _In_ ID3D12GraphicsCommandList* pCmdList,
-    _In_ ID3D12Resource* pDestinationResource,
-    _In_ ID3D12Resource* pIntermediate,
-    UINT64 IntermediateOffset,
-    _In_range_(0,D3D12_REQ_SUBRESOURCES) UINT FirstSubresource,
-    _In_range_(0,D3D12_REQ_SUBRESOURCES-FirstSubresource) UINT NumSubresources,
-    _In_reads_(NumSubresources) const D3D12_SUBRESOURCE_DATA* pSrcData) noexcept
-{
-    UINT64 RequiredSize = 0;
-    UINT64 MemToAlloc = static_cast<UINT64>(sizeof(D3D12_PLACED_SUBRESOURCE_FOOTPRINT) + sizeof(UINT) + sizeof(UINT64)) * NumSubresources;
-    if (MemToAlloc > SIZE_MAX)
-    {
-       return 0;
-    }
-    void* pMem = HeapAlloc(GetProcessHeap(), 0, static_cast<SIZE_T>(MemToAlloc));
-    if (pMem == nullptr)
-    {
-       return 0;
-    }
-    auto pLayouts = static_cast<D3D12_PLACED_SUBRESOURCE_FOOTPRINT*>(pMem);
-    UINT64* pRowSizesInBytes = reinterpret_cast<UINT64*>(pLayouts + NumSubresources);
-    UINT* pNumRows = reinterpret_cast<UINT*>(pRowSizesInBytes + NumSubresources);
+pub fn cd3dx12_texture_copy_location_sub(
+    res: &ID3D12Resource,
+    sub: u32,
+) -> D3D12_TEXTURE_COPY_LOCATION {
+    let mut res = D3D12_TEXTURE_COPY_LOCATION {
+        p_resource: Some(res.clone()),
+        r#type: D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+        ..unsafe { std::mem::zeroed() }
+    };
 
-    auto Desc = pDestinationResource->GetDesc();
-    ID3D12Device* pDevice = nullptr;
-    pDestinationResource->GetDevice(IID_ID3D12Device, reinterpret_cast<void**>(&pDevice));
-    pDevice->GetCopyableFootprints(&Desc, FirstSubresource, NumSubresources, IntermediateOffset, pLayouts, pNumRows, pRowSizesInBytes, &RequiredSize);
-    pDevice->Release();
-
-    UINT64 Result = UpdateSubresources(pCmdList, pDestinationResource, pIntermediate, FirstSubresource, NumSubresources, RequiredSize, pLayouts, pNumRows, pRowSizesInBytes, pSrcData);
-    HeapFree(GetProcessHeap(), 0, pMem);
-    return Result;
+    res.anonymous.placed_footprint = D3D12_PLACED_SUBRESOURCE_FOOTPRINT {
+        ..unsafe { std::mem::zeroed() }
+    };
+    res.anonymous.subresource_index = sub;
+    res
 }
-*/
+
+pub fn cd3dx12_texture_copy_location_footprint(
+    res: &ID3D12Resource,
+    footprint: &D3D12_PLACED_SUBRESOURCE_FOOTPRINT,
+) -> D3D12_TEXTURE_COPY_LOCATION {
+    let mut res = D3D12_TEXTURE_COPY_LOCATION {
+        p_resource: Some(res.clone()),
+        r#type: D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+        ..unsafe { std::mem::zeroed() }
+    };
+    res.anonymous.placed_footprint = footprint.clone();
+    res
+}
+
+/// WinAPI equivalent of SIZE_T(-1)
+///
+/// This is also bitwise not zero !0 or (in C++ ~0), not sure why the hell it's
+/// written as SIZE_T(-1)
+const SIZE_T_MINUS1: u64 = 18446744073709551615;
+
+/// Update subresources
+//
+/// This is mimicking stack allocation implementation, but since Rust doesn't
+/// have const generics, I think only way is to allocate in heap.
+pub fn update_subresources(
+    list: &ID3D12GraphicsCommandList,
+    dest_resource: &ID3D12Resource,
+    intermediate: &ID3D12Resource,
+    intermediate_offset: u64,
+    first_subresource: u32,
+    num_subresources: u32,
+    src_data_subresource: *mut D3D12_SUBRESOURCE_DATA,
+    max_sub_resources: usize,
+) -> ::windows::Result<u64> {
+    // Stack alloc implementation but with vecs
+    // https://github.com/fozed44/MCDemo/blob/8cb0b13ebf41a62500ce3173afd924e2726d5db3/Src/Render/MCD3DRenderEngine/src/Core/d3dx12.h#L2020-L2031
+    let src_data =
+        unsafe { std::slice::from_raw_parts_mut(src_data_subresource, num_subresources as _) };
+    let mut required_size = 0;
+    let mut layouts_vec = vec![D3D12_PLACED_SUBRESOURCE_FOOTPRINT::default(); max_sub_resources];
+    let layouts = layouts_vec.as_mut_slice();
+    let mut num_rows_vec = vec![0; max_sub_resources];
+    let num_rows = num_rows_vec.as_mut_slice();
+    let mut row_sizes_in_bytes_vec = vec![0; max_sub_resources];
+    let row_sizes_in_bytes = row_sizes_in_bytes_vec.as_mut_slice();
+    let desc = unsafe { dest_resource.GetDesc() };
+    unsafe {
+        let dest_device = {
+            let mut ptr: Option<ID3D12Device> = None;
+            dest_resource
+                .GetDevice(&ID3D12Device::IID, ptr.set_abi())
+                .and_some(ptr)
+        }?;
+        dest_device.GetCopyableFootprints(
+            &desc,
+            first_subresource,
+            num_subresources as _,
+            intermediate_offset,
+            layouts.as_mut_ptr(),
+            num_rows.as_mut_ptr(),
+            row_sizes_in_bytes.as_mut_ptr(),
+            &mut required_size,
+        );
+    }
+
+    // UpdateSubresources main implementation
+    // https://github.com/fozed44/MCDemo/blob/8cb0b13ebf41a62500ce3173afd924e2726d5db3/Src/Render/MCD3DRenderEngine/src/Core/d3dx12.h#L1928-L1968
+
+    let intermediate_desc = unsafe { intermediate.GetDesc() };
+    let dest_desc = unsafe { dest_resource.GetDesc() };
+    if intermediate_desc.dimension != D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER
+        || intermediate_desc.width < (required_size + layouts[0].offset)
+        || required_size > SIZE_T_MINUS1
+        || (dest_desc.dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER
+            && (first_subresource != 0 || num_subresources != 1))
+    {
+        return Ok(0); // TODO: Is this actually a failure?
+    }
+
+    let mut p_data = null_mut();
+    unsafe { intermediate.Map(0, null_mut(), &mut p_data) }.ok()?;
+
+    for i in 0..(num_subresources as usize) {
+        if row_sizes_in_bytes[i] > SIZE_T_MINUS1 {
+            return Ok(0); // TODO: Is this actually a failure?
+        }
+        let mut dest_data = D3D12_MEMCPY_DEST {
+            p_data: ((p_data as u64) + layouts[i].offset) as *mut _,
+            row_pitch: layouts[i].footprint.row_pitch as _,
+            slice_pitch: mem::size_of_val(&layouts[i].footprint.row_pitch)
+                * mem::size_of_val(&num_rows[i]),
+        };
+        memcpy_subresource(
+            &mut dest_data,
+            &mut src_data[i],
+            row_sizes_in_bytes[i] as _,
+            num_rows[i],
+            layouts[i].footprint.depth,
+        )
+    }
+    unsafe {
+        intermediate.Unmap(0, null_mut());
+    }
+
+    if dest_desc.dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER {
+        unsafe {
+            list.CopyBufferRegion(
+                dest_resource,
+                0,
+                intermediate,
+                layouts[0].offset,
+                layouts[0].footprint.width as _,
+            );
+        }
+    } else {
+        for i in 0..(num_subresources as usize) {
+            let dst =
+                cd3dx12_texture_copy_location_sub(&dest_resource, (i as u32) + first_subresource);
+            let src = cd3dx12_texture_copy_location_footprint(&intermediate, &layouts[i]);
+            unsafe {
+                list.CopyTextureRegion(&dst, 0, 0, 0, &src, null_mut());
+            }
+        }
+    }
+
+    return Ok(required_size);
+}
+
+/// Row-by-row memcpy
+pub fn memcpy_subresource(
+    dest: *mut D3D12_MEMCPY_DEST,
+    src: *mut D3D12_SUBRESOURCE_DATA,
+    row_size_in_bytes: usize,
+    num_rows: u32,
+    num_slices: u32,
+) {
+    // https://github.com/fozed44/MCDemo/blob/8cb0b13ebf41a62500ce3173afd924e2726d5db3/Src/Render/MCD3DRenderEngine/src/Core/d3dx12.h#L1875-L1893
+    for z in 0..(num_slices as usize) {
+        unsafe {
+            let dest_slice = ((*dest).p_data as usize) + (*dest).slice_pitch * z;
+            let src_slice = ((*src).p_data as usize) + ((*src).slice_pitch as usize) * z;
+            for y in 0..(num_rows as usize) {
+                std::ptr::copy_nonoverlapping(
+                    (src_slice + ((*src).row_pitch as usize) * y) as *mut c_void,
+                    (dest_slice + (*dest).row_pitch * y) as *mut c_void,
+                    row_size_in_bytes,
+                );
+            }
+        }
+    }
+}
