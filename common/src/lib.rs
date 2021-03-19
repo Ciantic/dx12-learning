@@ -341,20 +341,19 @@ pub fn update_subresources(
     intermediate: &ID3D12Resource,
     intermediate_offset: u64,
     first_subresource: u32,
-    src_data_array_num: u32,
-    src_data_array: *mut D3D12_SUBRESOURCE_DATA,
-    max_sub_resources: usize,
+    num_subresources: u32,
+    p_src_data: *mut D3D12_SUBRESOURCE_DATA,
+    max_subresources: usize,
 ) -> ::windows::Result<u64> {
     // Stack alloc implementation but with vecs
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L2118-L2140
-    let src_data =
-        unsafe { std::slice::from_raw_parts_mut(src_data_array, src_data_array_num as _) };
+    let src_data = unsafe { std::slice::from_raw_parts_mut(p_src_data, num_subresources as _) };
     let mut required_size = 0;
-    let mut layouts_vec = vec![D3D12_PLACED_SUBRESOURCE_FOOTPRINT::default(); max_sub_resources];
+    let mut layouts_vec = vec![D3D12_PLACED_SUBRESOURCE_FOOTPRINT::default(); max_subresources];
     let layouts = layouts_vec.as_mut_slice();
-    let mut num_rows_vec = vec![0; max_sub_resources];
+    let mut num_rows_vec = vec![0; max_subresources];
     let num_rows = num_rows_vec.as_mut_slice();
-    let mut row_sizes_in_bytes_vec = vec![0; max_sub_resources];
+    let mut row_sizes_in_bytes_vec = vec![0; max_subresources];
     let row_sizes_in_bytes = row_sizes_in_bytes_vec.as_mut_slice();
     let desc = unsafe { dest_resource.GetDesc() };
     unsafe {
@@ -367,7 +366,7 @@ pub fn update_subresources(
         dest_device.GetCopyableFootprints(
             &desc,
             first_subresource,
-            src_data_array_num as _,
+            num_subresources as _,
             intermediate_offset,
             layouts.as_mut_ptr(),
             num_rows.as_mut_ptr(),
@@ -385,7 +384,7 @@ pub fn update_subresources(
         || intermediate_desc.width < (required_size + layouts[0].offset)
         || required_size > (SIZE_T_MINUS1 as u64)
         || (dest_desc.dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER
-            && (first_subresource != 0 || src_data_array_num != 1))
+            && (first_subresource != 0 || num_subresources != 1))
     {
         return Ok(0); // TODO: Is this actually a failure?
     }
@@ -393,7 +392,7 @@ pub fn update_subresources(
     let mut p_data = null_mut();
     unsafe { intermediate.Map(0, null_mut(), &mut p_data) }.ok()?;
 
-    for i in 0..(src_data_array_num as usize) {
+    for i in 0..(num_subresources as usize) {
         if row_sizes_in_bytes[i] > (SIZE_T_MINUS1 as u64) {
             return Ok(0); // TODO: Is this actually a failure?
         }
@@ -405,7 +404,7 @@ pub fn update_subresources(
         };
         memcpy_subresource(
             &mut dest_data,
-            &mut src_data[i],
+            &src_data[i],
             row_sizes_in_bytes[i] as _,
             num_rows[i],
             layouts[i].footprint.depth,
@@ -426,7 +425,7 @@ pub fn update_subresources(
             );
         }
     } else {
-        for i in 0..(src_data_array_num as usize) {
+        for i in 0..(num_subresources as usize) {
             let dst =
                 cd3dx12_texture_copy_location_sub(&dest_resource, (i as u32) + first_subresource);
             let src = cd3dx12_texture_copy_location_footprint(&intermediate, &layouts[i]);
@@ -442,7 +441,7 @@ pub fn update_subresources(
 /// Row-by-row memcpy
 pub fn memcpy_subresource(
     dest: *mut D3D12_MEMCPY_DEST,
-    src: *mut D3D12_SUBRESOURCE_DATA,
+    src: *const D3D12_SUBRESOURCE_DATA,
     row_size_in_bytes: usize,
     num_rows: u32,
     num_slices: u32,
