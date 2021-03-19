@@ -282,7 +282,7 @@ pub fn update_subresources(
     max_sub_resources: usize,
 ) -> ::windows::Result<u64> {
     // Stack alloc implementation but with vecs
-    // https://github.com/fozed44/MCDemo/blob/8cb0b13ebf41a62500ce3173afd924e2726d5db3/Src/Render/MCD3DRenderEngine/src/Core/d3dx12.h#L2020-L2031
+    // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L2118-L2140
     let src_data =
         unsafe { std::slice::from_raw_parts_mut(src_data_array, src_data_array_num as _) };
     let mut required_size = 0;
@@ -313,7 +313,7 @@ pub fn update_subresources(
     }
 
     // UpdateSubresources main implementation
-    // https://github.com/fozed44/MCDemo/blob/8cb0b13ebf41a62500ce3173afd924e2726d5db3/Src/Render/MCD3DRenderEngine/src/Core/d3dx12.h#L1928-L1968
+    // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L2036-L2076
 
     let intermediate_desc = unsafe { intermediate.GetDesc() };
     let dest_desc = unsafe { dest_resource.GetDesc() };
@@ -383,7 +383,7 @@ pub fn memcpy_subresource(
     num_rows: u32,
     num_slices: u32,
 ) {
-    // https://github.com/fozed44/MCDemo/blob/8cb0b13ebf41a62500ce3173afd924e2726d5db3/Src/Render/MCD3DRenderEngine/src/Core/d3dx12.h#L1875-L1893
+    // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L1983-L2001
     for z in 0..(num_slices as usize) {
         unsafe {
             let dest_slice = ((*dest).p_data as usize) + (*dest).slice_pitch * z;
