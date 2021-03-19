@@ -23,8 +23,7 @@ pub struct Buffers {
 pub fn create_default_buffer(
     device: &ID3D12Device,
     list: &ID3D12GraphicsCommandList,
-    init_data: *mut c_void,
-    byte_size: usize,
+    data: &[u8],
 ) -> ::windows::Result<Buffers> {
     let default_buffer = unsafe {
         let mut ptr: Option<ID3D12Resource> = None;
@@ -32,7 +31,7 @@ pub fn create_default_buffer(
             .CreateCommittedResource(
                 &cd3dx12_heap_properties_with_type(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT),
                 D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
-                &cd3dx12_resource_desc_buffer(byte_size as _, None, None),
+                &cd3dx12_resource_desc_buffer(data.len() as _, None, None),
                 D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON,
                 null_mut(),
                 &ID3D12Resource::IID,
@@ -47,7 +46,7 @@ pub fn create_default_buffer(
             .CreateCommittedResource(
                 &cd3dx12_heap_properties_with_type(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD),
                 D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
-                &cd3dx12_resource_desc_buffer(byte_size as _, None, None),
+                &cd3dx12_resource_desc_buffer(data.len() as _, None, None),
                 D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ,
                 null_mut(),
                 &ID3D12Resource::IID,
@@ -57,9 +56,9 @@ pub fn create_default_buffer(
     }?;
 
     let mut sub_data = D3D12_SUBRESOURCE_DATA {
-        p_data: init_data,
-        row_pitch: byte_size as _,
-        slice_pitch: byte_size as _,
+        p_data: data.as_ptr() as *mut _,
+        row_pitch: data.len() as _,
+        slice_pitch: data.len() as _,
         ..Default::default()
     };
 

@@ -480,14 +480,7 @@ impl Window {
                 std::mem::size_of_val(&cpu_triangle),
             );
 
-            // let vertex_buffer = create_upload_buffer(&device, cpu_triangle_bytes)?;
-
-            let vertex_buffers = create_default_buffer(
-                &device,
-                &list,
-                cpu_triangle_bytes.as_ptr() as *mut _,
-                cpu_triangle_bytes.len(),
-            )?;
+            let vertex_buffers = create_default_buffer(&device, &list, cpu_triangle_bytes)?;
 
             let vertex_buffer_view = D3D12_VERTEX_BUFFER_VIEW {
                 buffer_location: vertex_buffers.gpu_buffer.GetGPUVirtualAddress(),
