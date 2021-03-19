@@ -4,7 +4,10 @@ use bindings::{
     windows::win32::dxgi::*, windows::win32::gdi::*, windows::win32::menus_and_resources::*,
     windows::win32::system_services::*, windows::win32::windows_and_messaging::*,
 };
-use dx12_common::{cd3dx12_resource_barrier_transition, create_upload_buffer};
+use dx12_common::{
+    cd3dx12_blend_desc_default, cd3dx12_rasterizer_desc_default,
+    cd3dx12_resource_barrier_transition, create_upload_buffer,
+};
 use std::ptr::null_mut;
 use std::{convert::TryInto, ffi::CString};
 use windows::{Abi, Interface};
@@ -370,44 +373,8 @@ impl Window {
                 bytecode_length: unsafe { pixel_shader.GetBufferSize() },
                 p_shader_bytecode: unsafe { pixel_shader.GetBufferPointer() },
             },
-            // CD3DX12_RASTERIZER_DESC( CD3DX12_DEFAULT )
-            rasterizer_state: D3D12_RASTERIZER_DESC {
-                fill_mode: D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID,
-                cull_mode: D3D12_CULL_MODE::D3D12_CULL_MODE_BACK,
-                front_counter_clockwise: BOOL(0),
-                depth_bias: D3D12_DEFAULT_DEPTH_BIAS as _,
-                depth_bias_clamp: D3D12_DEFAULT_DEPTH_BIAS_CLAMP,
-                slope_scaled_depth_bias: D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
-                depth_clip_enable: BOOL(1),
-                multisample_enable: BOOL(0),
-                antialiased_line_enable: BOOL(0),
-                forced_sample_count: 0,
-                conservative_raster:
-                    D3D12_CONSERVATIVE_RASTERIZATION_MODE::D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF,
-            },
-            // CD3DX12_BLEND_DESC(D3D12_DEFAULT)
-            blend_state: D3D12_BLEND_DESC {
-                alpha_to_coverage_enable: BOOL(0),
-                independent_blend_enable: BOOL(0),
-                render_target: (0..D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
-                    .map(|_| D3D12_RENDER_TARGET_BLEND_DESC {
-                        blend_enable: false.into(),
-                        logic_op_enable: false.into(),
-                        dest_blend: D3D12_BLEND::D3D12_BLEND_ZERO,
-                        src_blend: D3D12_BLEND::D3D12_BLEND_ZERO,
-                        dest_blend_alpha: D3D12_BLEND::D3D12_BLEND_ONE,
-                        src_blend_alpha: D3D12_BLEND::D3D12_BLEND_ONE,
-                        blend_op: D3D12_BLEND_OP::D3D12_BLEND_OP_ADD,
-                        logic_op: D3D12_LOGIC_OP::D3D12_LOGIC_OP_NOOP,
-                        blend_op_alpha: D3D12_BLEND_OP::D3D12_BLEND_OP_ADD,
-                        render_target_write_mask:
-                            D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL.0 as _,
-                    })
-                    .collect::<Vec<_>>()
-                    .as_slice()
-                    .try_into()
-                    .unwrap(),
-            },
+            rasterizer_state: cd3dx12_rasterizer_desc_default(),
+            blend_state: cd3dx12_blend_desc_default(),
             sample_mask: 0xffffffff,
             primitive_topology_type:
                 D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
