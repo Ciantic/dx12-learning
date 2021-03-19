@@ -6,7 +6,7 @@ use bindings::{
 };
 use dx12_common::{
     cd3dx12_blend_desc_default, cd3dx12_rasterizer_desc_default,
-    cd3dx12_resource_barrier_transition, create_upload_buffer,
+    cd3dx12_resource_barrier_transition, create_default_buffer, create_upload_buffer,
 };
 use std::ptr::null_mut;
 use std::{convert::TryInto, ffi::CString};
@@ -417,37 +417,11 @@ impl Window {
                     &ID3D12GraphicsCommandList::IID,
                     ptr.set_abi(),
                 )
-                .and_then(|| {
-                    let ptr = ptr.unwrap();
-                    ptr.Close().unwrap();
-                    ptr
-                })
+                .and_some(ptr)
         }?;
-
-        let (vertex_buffer, vertex_buffer_view) = unsafe {
-            // Blue end of the triangle is semi transparent
-            let ar = 1.0;
-            let scale = 1.0;
-            let cpu_triangle: [Vertex; 3] = [
-                Vertex::new([0.0, scale * ar, 0.0], [1.0, 0.0, 0.0, 1.0]),
-                Vertex::new([scale, -scale * ar, 0.0], [0.0, 1.0, 0.0, 1.0]),
-                Vertex::new([-scale, -scale * ar, 0.0], [0.0, 0.0, 1.0, 0.5]),
-            ];
-            let triangle_size_bytes = std::mem::size_of_val(&cpu_triangle);
-
-            let cpu_triangle_bytes = std::slice::from_raw_parts(
-                (&cpu_triangle as *const _) as *const u8,
-                std::mem::size_of_val(&cpu_triangle),
-            );
-
-            let vertex_buffer = create_upload_buffer(&device, cpu_triangle_bytes)?;
-            let vertex_buffer_view = D3D12_VERTEX_BUFFER_VIEW {
-                buffer_location: vertex_buffer.GetGPUVirtualAddress(),
-                stride_in_bytes: std::mem::size_of::<Vertex>() as _,
-                size_in_bytes: triangle_size_bytes as _,
-            };
-            (vertex_buffer, vertex_buffer_view)
-        };
+        unsafe {
+            list.Close().ok()?;
+        }
 
         // Create fence
         let (fence, fence_values, fence_event) = unsafe {
@@ -483,7 +457,57 @@ impl Window {
             right: 1024,
         };
 
-        Ok(Window {
+        // Resource initialization ------------------------------------------
+        unsafe {
+            // allocators[current_frame].Reset().ok()?;
+            list.Reset(&allocators[current_frame], None).ok()?;
+        }
+
+        let (vertex_buffer, vertex_buffer_view, vertex_buffer_upload) = unsafe {
+            // Blue end of the triangle is semi transparent
+            let ar = 1.0;
+            let scale = 1.0;
+            let cpu_triangle: [Vertex; 3] = [
+                Vertex::new([0.0, scale * ar, 0.0], [1.0, 0.0, 0.0, 1.0]),
+                Vertex::new([scale, -scale * ar, 0.0], [0.0, 1.0, 0.0, 1.0]),
+                Vertex::new([-scale, -scale * ar, 0.0], [0.0, 0.0, 1.0, 0.5]),
+            ];
+            let triangle_size_bytes = std::mem::size_of_val(&cpu_triangle);
+
+            let cpu_triangle_bytes = std::slice::from_raw_parts(
+                (&cpu_triangle as *const _) as *const u8,
+                std::mem::size_of_val(&cpu_triangle),
+            );
+
+            // let vertex_buffer = create_upload_buffer(&device, cpu_triangle_bytes)?;
+
+            let vertex_buffers = create_default_buffer(
+                &device,
+                &list,
+                cpu_triangle_bytes.as_ptr() as *mut _,
+                cpu_triangle_bytes.len(),
+            )?;
+
+            let vertex_buffer_view = D3D12_VERTEX_BUFFER_VIEW {
+                buffer_location: vertex_buffers.gpu_buffer.GetGPUVirtualAddress(),
+                stride_in_bytes: std::mem::size_of::<Vertex>() as _,
+                size_in_bytes: triangle_size_bytes as _,
+            };
+
+            (
+                vertex_buffers.gpu_buffer,
+                vertex_buffer_view,
+                vertex_buffers.upload_buffer,
+            )
+        };
+
+        unsafe {
+            list.Close().ok()?;
+            let mut lists = [Some(list.cast::<ID3D12CommandList>()?)];
+            queue.ExecuteCommandLists(lists.len() as _, lists.as_mut_ptr());
+        }
+
+        let mut win = Window {
             hwnd,
             factory,
             adapter,
@@ -510,7 +534,16 @@ impl Window {
             fence_values,
             vertex_buffer,
             vertex_buffer_view,
-        })
+        };
+
+        win.wait_for_gpu()?;
+
+        // Note that vertex_buffer_upload can now be destroyed as it's now
+        // copied to GPU only buffer
+
+        // End of resource initialization -------------------------------
+
+        Ok(win)
     }
 
     fn populate_command_list(&mut self) -> ::windows::Result<()> {
@@ -634,8 +667,7 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM)
         static mut WINDOW: Option<Window> = None;
         match msg {
             WM_CREATE => {
-                let mut win = Window::new(hwnd).unwrap();
-                win.wait_for_gpu().unwrap();
+                let win = Window::new(hwnd).unwrap();
                 WINDOW = Some(win);
                 DefWindowProcA(hwnd, msg, wparam, lparam)
             }

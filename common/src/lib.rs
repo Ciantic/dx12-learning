@@ -63,6 +63,8 @@ pub fn create_default_buffer(
         ..Default::default()
     };
 
+    println!("subr before {:?}", sub_data);
+
     unsafe {
         list.ResourceBarrier(
             1,
@@ -76,7 +78,7 @@ pub fn create_default_buffer(
         );
     }
 
-    update_subresources(
+    let whot = update_subresources(
         &list,
         &default_buffer,
         &upload_buffer,
@@ -86,6 +88,8 @@ pub fn create_default_buffer(
         &mut sub_data,
         1,
     )?;
+
+    println!("whot {}", whot);
 
     unsafe {
         list.ResourceBarrier(
@@ -348,6 +352,7 @@ pub fn update_subresources(
     // Stack alloc implementation but with vecs
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L2118-L2140
     let src_data = unsafe { std::slice::from_raw_parts_mut(p_src_data, num_subresources as _) };
+    println!("subr {:?}", src_data);
     let mut required_size = 0;
     let mut layouts_vec = vec![D3D12_PLACED_SUBRESOURCE_FOOTPRINT::default(); max_subresources];
     let layouts = layouts_vec.as_mut_slice();
@@ -363,6 +368,10 @@ pub fn update_subresources(
                 .GetDevice(&ID3D12Device::IID, ptr.set_abi())
                 .and_some(ptr)
         }?;
+        println!(
+            "GetCopyableFootprints 1 {:?} {:?} {:?} {:?}",
+            layouts, num_rows, row_sizes_in_bytes, required_size
+        );
         dest_device.GetCopyableFootprints(
             &desc,
             first_subresource,
@@ -373,11 +382,16 @@ pub fn update_subresources(
             row_sizes_in_bytes.as_mut_ptr(),
             &mut required_size,
         );
+        println!(
+            "GetCopyableFootprints 2 {:?} {:?} {:?} {:?}",
+            layouts, num_rows, row_sizes_in_bytes, required_size
+        );
     }
 
     // UpdateSubresources main implementation
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L2036-L2076
 
+    // Minor validation
     let intermediate_desc = unsafe { intermediate.GetDesc() };
     let dest_desc = unsafe { dest_resource.GetDesc() };
     if intermediate_desc.dimension != D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER
@@ -390,12 +404,20 @@ pub fn update_subresources(
     }
 
     let mut p_data = null_mut();
+
     unsafe { intermediate.Map(0, null_mut(), &mut p_data) }.ok()?;
+    println!("MAP {:?}", p_data);
 
     for i in 0..(num_subresources as usize) {
         if row_sizes_in_bytes[i] > (SIZE_T_MINUS1 as u64) {
             return Ok(0); // TODO: Is this actually a failure?
         }
+        println!(
+            "sizes of layouts[i].footprint.row_pitch {:?} and num_rows[i] {:?}",
+            mem::size_of_val(&layouts[i].footprint.row_pitch),
+            mem::size_of_val(&num_rows[i])
+        );
+        println!("offset {}", layouts[i].offset);
         let mut dest_data = D3D12_MEMCPY_DEST {
             p_data: ((p_data as u64) + layouts[i].offset) as *mut _,
             row_pitch: layouts[i].footprint.row_pitch as _,
@@ -410,11 +432,17 @@ pub fn update_subresources(
             layouts[i].footprint.depth,
         )
     }
+    println!("p_data {:?}", p_data);
     unsafe {
         intermediate.Unmap(0, null_mut());
     }
 
     if dest_desc.dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER {
+        println!("CopyBufferRegion");
+        println!("desti {:?}", dest_resource);
+        println!("inter {:?}", intermediate);
+        println!("offse {:?}", layouts[0].offset);
+        println!("bytes {:?}", layouts[0].footprint.width);
         unsafe {
             list.CopyBufferRegion(
                 dest_resource,
@@ -425,6 +453,7 @@ pub fn update_subresources(
             );
         }
     } else {
+        // TODO: Never tested
         for i in 0..(num_subresources as usize) {
             let dst =
                 cd3dx12_texture_copy_location_sub(&dest_resource, (i as u32) + first_subresource);
@@ -446,11 +475,19 @@ pub fn memcpy_subresource(
     num_rows: u32,
     num_slices: u32,
 ) {
+    unsafe {
+        println!("dest {:?}", *dest);
+        println!("src {:?}", *src);
+    }
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L1983-L2001
     for z in 0..(num_slices as usize) {
         unsafe {
             let dest_slice = ((*dest).p_data as usize) + (*dest).slice_pitch * z;
             let src_slice = ((*src).p_data as usize) + ((*src).slice_pitch as usize) * z;
+            println!("dest_slice {:?}", dest_slice as *mut c_void);
+            println!("src_slice {:?}", src_slice as *mut c_void);
+            println!("num_rows {}", num_rows);
+            println!("row_size_in_bytes {}", row_size_in_bytes);
             for y in 0..(num_rows as usize) {
                 std::ptr::copy_nonoverlapping(
                     (src_slice + ((*src).row_pitch as usize) * y) as *const u8,
@@ -459,5 +496,19 @@ pub fn memcpy_subresource(
                 );
             }
         }
+    }
+
+    unsafe {
+        #[derive(Debug)]
+        #[repr(C)]
+        struct Vertex {
+            position: [f32; 3],
+            color: [f32; 4],
+        }
+
+        let src_slice_view = std::slice::from_raw_parts((*src).p_data as *const Vertex, 3);
+        let dest_slice_view = std::slice::from_raw_parts((*dest).p_data as *const Vertex, 3);
+        println!("{:?}", src_slice_view);
+        println!("{:?}", dest_slice_view);
     }
 }
