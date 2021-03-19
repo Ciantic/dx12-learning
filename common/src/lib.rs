@@ -265,7 +265,7 @@ pub fn cd3dx12_texture_copy_location_footprint(
 ///
 /// This is also bitwise not zero !0 or (in C++ ~0), not sure why the hell it's
 /// written as SIZE_T(-1)
-const SIZE_T_MINUS1: u64 = 18446744073709551615;
+const SIZE_T_MINUS1: usize = usize::MAX;
 
 /// Update subresources
 //
@@ -277,14 +277,14 @@ pub fn update_subresources(
     intermediate: &ID3D12Resource,
     intermediate_offset: u64,
     first_subresource: u32,
-    num_subresources: u32,
-    src_data_subresource: *mut D3D12_SUBRESOURCE_DATA,
+    src_data_array_num: u32,
+    src_data_array: *mut D3D12_SUBRESOURCE_DATA,
     max_sub_resources: usize,
 ) -> ::windows::Result<u64> {
     // Stack alloc implementation but with vecs
     // https://github.com/fozed44/MCDemo/blob/8cb0b13ebf41a62500ce3173afd924e2726d5db3/Src/Render/MCD3DRenderEngine/src/Core/d3dx12.h#L2020-L2031
     let src_data =
-        unsafe { std::slice::from_raw_parts_mut(src_data_subresource, num_subresources as _) };
+        unsafe { std::slice::from_raw_parts_mut(src_data_array, src_data_array_num as _) };
     let mut required_size = 0;
     let mut layouts_vec = vec![D3D12_PLACED_SUBRESOURCE_FOOTPRINT::default(); max_sub_resources];
     let layouts = layouts_vec.as_mut_slice();
@@ -303,7 +303,7 @@ pub fn update_subresources(
         dest_device.GetCopyableFootprints(
             &desc,
             first_subresource,
-            num_subresources as _,
+            src_data_array_num as _,
             intermediate_offset,
             layouts.as_mut_ptr(),
             num_rows.as_mut_ptr(),
@@ -319,9 +319,9 @@ pub fn update_subresources(
     let dest_desc = unsafe { dest_resource.GetDesc() };
     if intermediate_desc.dimension != D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER
         || intermediate_desc.width < (required_size + layouts[0].offset)
-        || required_size > SIZE_T_MINUS1
+        || required_size > (SIZE_T_MINUS1 as u64)
         || (dest_desc.dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER
-            && (first_subresource != 0 || num_subresources != 1))
+            && (first_subresource != 0 || src_data_array_num != 1))
     {
         return Ok(0); // TODO: Is this actually a failure?
     }
@@ -329,8 +329,8 @@ pub fn update_subresources(
     let mut p_data = null_mut();
     unsafe { intermediate.Map(0, null_mut(), &mut p_data) }.ok()?;
 
-    for i in 0..(num_subresources as usize) {
-        if row_sizes_in_bytes[i] > SIZE_T_MINUS1 {
+    for i in 0..(src_data_array_num as usize) {
+        if row_sizes_in_bytes[i] > (SIZE_T_MINUS1 as u64) {
             return Ok(0); // TODO: Is this actually a failure?
         }
         let mut dest_data = D3D12_MEMCPY_DEST {
@@ -362,7 +362,7 @@ pub fn update_subresources(
             );
         }
     } else {
-        for i in 0..(num_subresources as usize) {
+        for i in 0..(src_data_array_num as usize) {
             let dst =
                 cd3dx12_texture_copy_location_sub(&dest_resource, (i as u32) + first_subresource);
             let src = cd3dx12_texture_copy_location_footprint(&intermediate, &layouts[i]);
