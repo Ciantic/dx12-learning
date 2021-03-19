@@ -105,6 +105,70 @@ pub fn create_default_buffer(
     })
 }
 
+pub fn create_upload_buffer(
+    device: &ID3D12Device,
+    data: &[u8],
+) -> ::windows::Result<ID3D12Resource> {
+    unsafe {
+        let props = D3D12_HEAP_PROPERTIES {
+            r#type: D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD,
+            cpu_page_property: D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            creation_node_mask: 1,
+            visible_node_mask: 1,
+            memory_pool_preference: D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN,
+        };
+        let desc = D3D12_RESOURCE_DESC {
+            alignment: 0,
+            flags: D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE,
+            dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER,
+            depth_or_array_size: 1,
+            format: DXGI_FORMAT::DXGI_FORMAT_UNKNOWN,
+            height: 1,
+            width: data.len() as u64,
+            layout: D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+            mip_levels: 1,
+            sample_desc: DXGI_SAMPLE_DESC {
+                count: 1,
+                quality: 0,
+            },
+        };
+        let mut ptr: Option<ID3D12Resource> = None;
+        let resource = device
+            .CreateCommittedResource(
+                &props,
+                D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+                &desc,
+                D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ,
+                null_mut(),
+                &ID3D12Resource::IID,
+                ptr.set_abi(),
+            )
+            .and_some(ptr)?;
+
+        let mut gpu_data: *mut u8 = null_mut();
+        resource
+            .Map(
+                0,
+                &D3D12_RANGE { begin: 0, end: 0 },
+                &mut gpu_data as *mut *mut _ as *mut *mut _,
+            )
+            .ok()?;
+
+        if gpu_data.is_null() {
+            panic!("Failed to map");
+        }
+        std::ptr::copy_nonoverlapping(data.as_ptr(), gpu_data, data.len());
+
+        // Debug, if you want to see what was copied
+        // let gpu_slice = std::slice::from_raw_parts(gpu_triangle, 3);
+        // println!("{:?}", cpu_triangle);
+        // println!("{:?}", gpu_slice);
+
+        resource.Unmap(0, null_mut());
+        Ok(resource)
+    }
+}
+
 pub fn cd3dx12_heap_properties_with_type(heap_type: D3D12_HEAP_TYPE) -> D3D12_HEAP_PROPERTIES {
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L423-L433
     D3D12_HEAP_PROPERTIES {

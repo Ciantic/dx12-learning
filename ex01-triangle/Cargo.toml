@@ -11,3 +11,5 @@ bindings = { path = "../bindings" }
 dx12-common = { path = "../common" }
 windows = { git = "https://github.com/microsoft/windows-rs" }
 directx_math = "*"
+# serde = { version = "*", features = ["derive"] }
+# bincode = "*"

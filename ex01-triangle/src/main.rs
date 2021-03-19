@@ -4,13 +4,14 @@ use bindings::{
     windows::win32::dxgi::*, windows::win32::gdi::*, windows::win32::menus_and_resources::*,
     windows::win32::system_services::*, windows::win32::windows_and_messaging::*,
 };
+use dx12_common::create_upload_buffer;
 use std::ptr::null_mut;
 use std::{convert::TryInto, ffi::CString};
 use windows::{Abi, Interface};
 
 const NUM_OF_FRAMES: usize = 2;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[repr(C)]
 struct Vertex {
     position: [f32; 3],
@@ -466,65 +467,13 @@ impl Window {
                 Vertex::new([-scale, -scale * ar, 0.0], [0.0, 0.0, 1.0, 0.5]),
             ];
             let triangle_size_bytes = std::mem::size_of_val(&cpu_triangle);
-            let props = D3D12_HEAP_PROPERTIES {
-                r#type: D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD,
-                cpu_page_property: D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-                creation_node_mask: 1,
-                visible_node_mask: 1,
-                memory_pool_preference: D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN,
-            };
-            let desc = D3D12_RESOURCE_DESC {
-                alignment: 0,
-                flags: D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE,
-                dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER,
-                depth_or_array_size: 1,
-                format: DXGI_FORMAT::DXGI_FORMAT_UNKNOWN,
-                height: 1,
-                width: triangle_size_bytes as u64,
-                layout: D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-                mip_levels: 1,
-                sample_desc: DXGI_SAMPLE_DESC {
-                    count: 1,
-                    quality: 0,
-                },
-            };
-            // let clr = D3D12_CLEAR_VALUE {
-            //     Format: DXGI_FORMAT_UNKNOWN,
 
-            // };
-            let mut ptr: Option<ID3D12Resource> = None;
-            let vertex_buffer = device
-                .CreateCommittedResource(
-                    &props,
-                    D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
-                    &desc,
-                    D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ,
-                    null_mut(),
-                    &ID3D12Resource::IID,
-                    ptr.set_abi(),
-                )
-                .and_some(ptr)?;
+            let cpu_triangle_bytes = std::slice::from_raw_parts(
+                (&cpu_triangle as *const _) as *const u8,
+                std::mem::size_of_val(&cpu_triangle),
+            );
 
-            let mut gpu_triangle = null_mut::<Vertex>();
-            vertex_buffer
-                .Map(
-                    0,
-                    &D3D12_RANGE { begin: 0, end: 0 },
-                    &mut gpu_triangle as *mut *mut _ as *mut *mut _,
-                )
-                .ok()?;
-
-            if gpu_triangle.is_null() {
-                panic!("Nullptr");
-            }
-            std::ptr::copy_nonoverlapping(cpu_triangle.as_ptr(), gpu_triangle as *mut _, 3);
-
-            // Debug, if you want to see what was copied
-            // let gpu_slice = std::slice::from_raw_parts(gpu_triangle, 3);
-            // println!("{:?}", cpu_triangle);
-            // println!("{:?}", gpu_slice);
-
-            vertex_buffer.Unmap(0, null_mut());
+            let vertex_buffer = create_upload_buffer(&device, cpu_triangle_bytes)?;
             let vertex_buffer_view = D3D12_VERTEX_BUFFER_VIEW {
                 buffer_location: vertex_buffer.GetGPUVirtualAddress(),
                 stride_in_bytes: std::mem::size_of::<Vertex>() as _,
