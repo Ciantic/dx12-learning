@@ -303,6 +303,7 @@ pub fn cd3dx12_texture_copy_location_sub(
     sub: u32,
 ) -> D3D12_TEXTURE_COPY_LOCATION {
     let mut res = D3D12_TEXTURE_COPY_LOCATION {
+        // TODO: This should be pointer, can I get rid of clone?
         p_resource: Some(res.clone()),
         r#type: D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
         ..unsafe { std::mem::zeroed() }
@@ -320,6 +321,7 @@ pub fn cd3dx12_texture_copy_location_footprint(
     footprint: &D3D12_PLACED_SUBRESOURCE_FOOTPRINT,
 ) -> D3D12_TEXTURE_COPY_LOCATION {
     let mut res = D3D12_TEXTURE_COPY_LOCATION {
+        // TODO: This should be pointer, can I get rid of clone?
         p_resource: Some(res.clone()),
         r#type: D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
         ..unsafe { std::mem::zeroed() }
