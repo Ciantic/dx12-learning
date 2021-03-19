@@ -4,7 +4,7 @@ use bindings::{
     windows::win32::dxgi::*, windows::win32::gdi::*, windows::win32::menus_and_resources::*,
     windows::win32::system_services::*, windows::win32::windows_and_messaging::*,
 };
-use dx12_common::create_upload_buffer;
+use dx12_common::{cd3dx12_resource_barrier_transition, create_upload_buffer};
 use std::ptr::null_mut;
 use std::{convert::TryInto, ffi::CString};
 use windows::{Abi, Interface};
@@ -571,21 +571,16 @@ impl Window {
             self.list.RSSetScissorRects(1, &self.scissor);
 
             // Direct the draw commands to the render target resource
-            let barriers = {
-                let mut barrier = D3D12_RESOURCE_BARRIER {
-                    r#type: D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                    flags: D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                    ..std::mem::zeroed()
-                };
-                barrier.anonymous.transition.subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-                barrier.anonymous.transition.p_resource = current_resource.abi();
-                barrier.anonymous.transition.state_before =
-                    D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
-                barrier.anonymous.transition.state_after =
-                    D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-                [barrier]
-            };
-            self.list.ResourceBarrier(1, barriers.as_ptr());
+            self.list.ResourceBarrier(
+                1,
+                &cd3dx12_resource_barrier_transition(
+                    current_resource,
+                    D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT,
+                    D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET,
+                    None,
+                    None,
+                ),
+            );
 
             self.list.OMSetRenderTargets(1, &rtv, false, null_mut());
 
@@ -597,22 +592,17 @@ impl Window {
             self.list.IASetVertexBuffers(0, 1, &self.vertex_buffer_view);
             self.list.DrawInstanced(3, 1, 0, 0);
 
-            // Direct the draw commands to the render target resource
-            let barriers = {
-                let mut barrier = D3D12_RESOURCE_BARRIER {
-                    r#type: D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                    flags: D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                    ..std::mem::zeroed()
-                };
-                barrier.anonymous.transition.subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-                barrier.anonymous.transition.p_resource = current_resource.abi();
-                barrier.anonymous.transition.state_before =
-                    D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET;
-                barrier.anonymous.transition.state_after =
-                    D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT;
-                [barrier]
-            };
-            self.list.ResourceBarrier(1, barriers.as_ptr());
+            // Set render target to be presentable
+            self.list.ResourceBarrier(
+                1,
+                &cd3dx12_resource_barrier_transition(
+                    current_resource,
+                    D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET,
+                    D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT,
+                    None,
+                    None,
+                ),
+            );
 
             // Close list
             self.list.Close().ok()?;
