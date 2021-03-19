@@ -6,7 +6,7 @@ use bindings::{
 };
 use dx12_common::{
     cd3dx12_blend_desc_default, cd3dx12_rasterizer_desc_default,
-    cd3dx12_resource_barrier_transition, create_default_buffer, create_upload_buffer,
+    cd3dx12_resource_barrier_transition, create_default_buffer,
 };
 use std::ptr::null_mut;
 use std::{convert::TryInto, ffi::CString};
@@ -464,7 +464,7 @@ impl Window {
                 .ok()?;
         }
 
-        let (vertex_buffer, vertex_buffer_view, vertex_buffer_upload) = unsafe {
+        let (vertex_buffer, vertex_buffer_view, _vertex_buffer_upload) = unsafe {
             // Blue end of the triangle is semi transparent
             let ar = 1.0;
             let scale = 1.0;
@@ -532,7 +532,7 @@ impl Window {
 
         win.wait_for_gpu()?;
 
-        // Note that vertex_buffer_upload can now be destroyed as it's now
+        // Note that _vertex_buffer_upload can now be destroyed as it's now
         // copied to GPU only buffer
 
         // End of resource initialization -------------------------------
