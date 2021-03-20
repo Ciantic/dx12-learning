@@ -45,7 +45,7 @@ struct Window {
     comp_visual: IDCompositionVisual,
     rtv_desc_heap: ID3D12DescriptorHeap,
     rtv_desc_size: usize,
-    resources: [ID3D12Resource; NUM_OF_FRAMES],
+    back_buffers: [ID3D12Resource; NUM_OF_FRAMES],
     root_signature: ID3D12RootSignature,
     list: ID3D12GraphicsCommandList,
     vertex_shader: ID3DBlob,
@@ -210,7 +210,7 @@ impl Window {
                 D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
             ) as usize
         };
-        let resources = (0..NUM_OF_FRAMES)
+        let back_buffers = (0..NUM_OF_FRAMES)
             .map(|i| {
                 let resource = unsafe {
                     let mut ptr: Option<ID3D12Resource> = None;
@@ -564,7 +564,7 @@ impl Window {
             comp_visual,
             rtv_desc_heap,
             rtv_desc_size,
-            resources,
+            back_buffers,
             root_signature,
             list,
             pipeline_state,
@@ -595,7 +595,7 @@ impl Window {
         unsafe {
             // Get the current backbuffer on which to draw
             let current_frame = self.swap_chain.GetCurrentBackBufferIndex() as usize;
-            let current_resource = &self.resources[current_frame];
+            let current_back_buffer = &self.back_buffers[current_frame];
             let rtv = {
                 let mut ptr = self.rtv_desc_heap.GetCPUDescriptorHandleForHeapStart();
                 ptr.ptr += self.rtv_desc_size * current_frame;
@@ -619,7 +619,7 @@ impl Window {
             self.list.ResourceBarrier(
                 1,
                 &cd3dx12_resource_barrier_transition(
-                    current_resource,
+                    current_back_buffer,
                     D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT,
                     D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET,
                     None,
@@ -642,7 +642,7 @@ impl Window {
             self.list.ResourceBarrier(
                 1,
                 &cd3dx12_resource_barrier_transition(
-                    current_resource,
+                    current_back_buffer,
                     D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET,
                     D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT,
                     None,
