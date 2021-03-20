@@ -26,9 +26,10 @@ impl Vertex {
     }
 }
 
-// pub fn create_default_buffer() {
-
-// }
+const RED: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
+const BLUE_TRANSPARENT: [f32; 4] = [0.0, 0.0, 1.0, 0.5];
+const MAGENTA: [f32; 4] = [1.0, 0.0, 1.0, 1.0];
 
 #[allow(dead_code)]
 struct Window {
@@ -495,10 +496,10 @@ impl Window {
 
             // Vertexes (these don't form the triangle, but the indicies do)
             let vertices: [Vertex; 4] = [
-                Vertex::new([-1.0, 1.0, 0.0], [1.0, 0.0, 0.0, 1.0]),
-                Vertex::new([1.0, 1.0, 0.0], [0.0, 1.0, 0.0, 1.0]),
-                Vertex::new([1.0, -1.0, 0.0], [0.0, 0.0, 1.0, 0.5]),
-                Vertex::new([-1.0, -1.0, 0.0], [0.0, 0.0, 1.0, 0.5]),
+                Vertex::new([-1.0, 1.0, 0.0], RED),
+                Vertex::new([1.0, 1.0, 0.0], GREEN),
+                Vertex::new([1.0, -1.0, 0.0], BLUE_TRANSPARENT),
+                Vertex::new([-1.0, -1.0, 0.0], MAGENTA),
             ];
 
             let vertices_as_bytes = std::slice::from_raw_parts(

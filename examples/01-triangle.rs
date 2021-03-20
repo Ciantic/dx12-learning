@@ -28,6 +28,10 @@ impl Vertex {
     }
 }
 
+const RED: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
+const BLUE_TRANSPARENT: [f32; 4] = [0.0, 0.0, 1.0, 0.5];
+
 #[allow(dead_code)]
 struct Window {
     hwnd: HWND,
@@ -489,9 +493,9 @@ impl Window {
             // in counter clockwise order it would not show up.
 
             let triangle: [Vertex; 3] = [
-                Vertex::new([0.0, 1.0, 0.0], [1.0, 0.0, 0.0, 1.0]), // 1
-                Vertex::new([1.0, -1.0, 0.0], [0.0, 1.0, 0.0, 1.0]), // 2
-                Vertex::new([-1.0, -1.0, 0.0], [0.0, 0.0, 1.0, 0.5]), // 3rd vertex
+                Vertex::new([0.0, 1.0, 0.0], RED),                // 1
+                Vertex::new([1.0, -1.0, 0.0], GREEN),             // 2
+                Vertex::new([-1.0, -1.0, 0.0], BLUE_TRANSPARENT), // 3rd vertex
             ];
 
             // To send the triangle to GPU, we convert it to bytes
