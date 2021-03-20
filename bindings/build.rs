@@ -11,10 +11,10 @@ fn main() {
             TranslateMessage,
             RegisterClassA, LoadCursorA, HWND, LPARAM, MSG, WNDCLASSA, WPARAM,
             IDC_ARROW, WM_CREATE,
-            WM_DESTROY, WM_PAINT, WINDOWS_STYLE, WINDOWS_EX_STYLE,
+            WM_DESTROY, WM_PAINT, WINDOWS_STYLE, WINDOWS_EX_STYLE, WNDCLASS_STYLES
         },
         windows::win32::system_services::{
-            GetModuleHandleA, HINSTANCE, LRESULT, WINDOWSCLASS_STYLES, CreateEventA, WaitForSingleObject, WaitForSingleObjectEx
+            GetModuleHandleA, HINSTANCE, LRESULT, CreateEventA, WaitForSingleObject, WaitForSingleObjectEx
         },
         windows::win32::direct_composition::{IDCompositionDevice, IDCompositionTarget, IDCompositionVisual, DCompositionCreateDevice}
     );

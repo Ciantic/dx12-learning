@@ -29,20 +29,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dx12-learning"
-version = "0.1.0"
-
-[[package]]
-name = "ex01-triangle"
-version = "0.1.0"
-dependencies = [
- "bindings",
- "directx_math",
- "dx12-common",
- "windows",
-]
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -86,7 +72,7 @@ checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
 [[package]]
 name = "windows"
 version = "0.5.0"
-source = "git+https://github.com/microsoft/windows-rs#1e1e48127dcdc279ac79bcef2a638b6f194b6e2f"
+source = "git+https://github.com/microsoft/windows-rs#de1a189ec0f182ca25995e01aea20bc7b51f1cf0"
 dependencies = [
  "const-sha1",
  "windows_gen",
@@ -96,7 +82,7 @@ dependencies = [
 [[package]]
 name = "windows_gen"
 version = "0.5.0"
-source = "git+https://github.com/microsoft/windows-rs#1e1e48127dcdc279ac79bcef2a638b6f194b6e2f"
+source = "git+https://github.com/microsoft/windows-rs#de1a189ec0f182ca25995e01aea20bc7b51f1cf0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -108,7 +94,7 @@ dependencies = [
 [[package]]
 name = "windows_gen_macros"
 version = "0.5.0"
-source = "git+https://github.com/microsoft/windows-rs#1e1e48127dcdc279ac79bcef2a638b6f194b6e2f"
+source = "git+https://github.com/microsoft/windows-rs#de1a189ec0f182ca25995e01aea20bc7b51f1cf0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -118,7 +104,7 @@ dependencies = [
 [[package]]
 name = "windows_macros"
 version = "0.5.0"
-source = "git+https://github.com/microsoft/windows-rs#1e1e48127dcdc279ac79bcef2a638b6f194b6e2f"
+source = "git+https://github.com/microsoft/windows-rs#de1a189ec0f182ca25995e01aea20bc7b51f1cf0"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -273,14 +273,14 @@ impl Window {
         }?;
 
         let vertex_shader = unsafe {
-            let data = include_bytes!("./simple.hlsl");
+            let data = include_bytes!("./01-triangle.hlsl");
             let mut err: Option<ID3DBlob> = None;
             let mut ptr: Option<ID3DBlob> = None;
 
             D3DCompile(
                 data.as_ptr() as *mut _,
                 data.len(),
-                PSTR("simple.hlsl\0".as_ptr() as _),
+                PSTR("01-triangle.hlsl\0".as_ptr() as _),
                 null_mut(),
                 None,
                 PSTR("VSMain\0".as_ptr() as _),
@@ -304,14 +304,14 @@ impl Window {
         };
 
         let pixel_shader = unsafe {
-            let data = include_bytes!("./simple.hlsl");
+            let data = include_bytes!("./01-triangle.hlsl");
             let mut err: Option<ID3DBlob> = None;
             let mut ptr: Option<ID3DBlob> = None;
 
             D3DCompile(
                 data.as_ptr() as *mut _,
                 data.len(),
-                PSTR("simple.hlsl\0".as_ptr() as _),
+                PSTR("01-triangle.hlsl\0".as_ptr() as _),
                 null_mut(),
                 None,
                 PSTR("PSMain\0".as_ptr() as _),
@@ -687,7 +687,7 @@ fn main() {
         let instance = HINSTANCE(GetModuleHandleA(PSTR(null_mut())));
         let cursor = LoadCursorA(HINSTANCE(0), PSTR(IDC_ARROW as _));
         let cls = WNDCLASSA {
-            style: 0,
+            style: WNDCLASS_STYLES::CS_HREDRAW | WNDCLASS_STYLES::CS_VREDRAW,
             lpfn_wnd_proc: Some(wndproc),
             h_instance: instance,
             lpsz_class_name: PSTR(b"CompositionCls\0".as_ptr() as _),
