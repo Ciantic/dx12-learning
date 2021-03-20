@@ -62,6 +62,9 @@ struct Window {
     // Resources
     vertex_buffer: ID3D12Resource,
     vertex_buffer_view: D3D12_VERTEX_BUFFER_VIEW,
+
+    indices_buffer: ID3D12Resource,
+    indices_buffer_view: D3D12_INDEX_BUFFER_VIEW,
 }
 
 impl Window {
@@ -465,66 +468,80 @@ impl Window {
         }
 
         let (vertex_buffer, vertex_buffer_view, _vertex_buffer_upload) = unsafe {
-            // Coordinate space is always as followed:
+            // Coordinate space again as refresher:
             //
-            //                    vertex
-            //           x, y        │
-            //        -1.0, +1.0     ▼      +1.0, +1.0
-            //            ┌──────────1──────────┐
-            //            │          │          │
-            //            │          │          │
-            //            │          │          │
-            //            │          │          │
-            //            │        0,│0         │
-            //            ├──────────┼──────────┤
-            //            │          │          │
-            //            │          │          │
-            //            │          │          │
-            //            │          │          │
-            //            │          │          │
-            // vertex ──► 3──────────┴──────────2 ◄─── vertex
-            //        -1.0, -1.0            +1.0, -1.0
+            //    x, y
+            // -1.0, +1.0            +1.0, +1.0
+            //     0──────────┬──────────1 ◄─── vertex index
+            //     │          │          │
+            //     │          │          │
+            //     │          │          │
+            //     │          │          │
+            //     │        0,│0         │
+            //     ├──────────┼──────────┤
+            //     │          │          │
+            //     │          │          │
+            //     │          │          │
+            //     │          │          │
+            //     │          │          │
+            //     3──────────┴──────────2
+            // -1.0, -1.0            +1.0, -1.0
+
+            // In order to create quad (that is square), we form two triangles
+            // from the vertices:
             //
+            // Indices 0, 1, 2 form a first triangle, and
+            // indices 0, 2, 3 form a second triangle.
 
-            // Notice that the vertices are ordered so that they form triangle
-            // when iterated in clockwise. If you tried to create the triangle
-            // in counter clockwise order it would not show up.
-
-            let triangle: [Vertex; 3] = [
-                Vertex::new([0.0, 1.0, 0.0], [1.0, 0.0, 0.0, 1.0]), // 1
-                Vertex::new([1.0, -1.0, 0.0], [0.0, 1.0, 0.0, 1.0]), // 2
-                Vertex::new([-1.0, -1.0, 0.0], [0.0, 0.0, 1.0, 0.5]), // 3rd vertex
+            // Vertexes (these don't form the triangle, but the indicies do)
+            let vertices: [Vertex; 4] = [
+                Vertex::new([-1.0, 1.0, 0.0], [1.0, 0.0, 0.0, 1.0]),
+                Vertex::new([1.0, 1.0, 0.0], [0.0, 1.0, 0.0, 1.0]),
+                Vertex::new([1.0, -1.0, 0.0], [0.0, 0.0, 1.0, 0.5]),
+                Vertex::new([-1.0, -1.0, 0.0], [0.0, 0.0, 1.0, 0.5]),
             ];
 
-            // To send the triangle to GPU, we convert it to bytes
-            let triangle_bytes = std::slice::from_raw_parts(
-                (&triangle as *const _) as *const u8,
-                std::mem::size_of_val(&triangle),
+            let vertices_as_bytes = std::slice::from_raw_parts(
+                (&vertices as *const _) as *const u8,
+                std::mem::size_of_val(&vertices),
             );
 
-            // Following creates a GPU only buffer and upload buffer, then it
-            // copies the given bytes from the upload buffer to GPU only buffer.
-            let vertex_buffers = create_default_buffer(&device, &list, triangle_bytes)?;
+            let vertex_buffers = create_default_buffer(&device, &list, vertices_as_bytes)?;
 
-            // Vertex buffer view is only value refererred later in the drawing
-            // phase.
             let vertex_buffer_view = D3D12_VERTEX_BUFFER_VIEW {
                 buffer_location: vertex_buffers.gpu_buffer.GetGPUVirtualAddress(),
                 stride_in_bytes: std::mem::size_of::<Vertex>() as _,
-                size_in_bytes: triangle_bytes.len() as _,
+                size_in_bytes: vertices_as_bytes.len() as _,
             };
 
-            // Even though vertex_buffer_view is only value referred later, the
-            // gpu_buffer and upload_buffer must be kept alive. GPU buffer must
-            // be kept alive as long as you want to draw the triangle.
-            //
-            // Note: Upload buffer is kept alive *temporarily* until it's known
-            // to be uploaded to the GPU.
             (
                 vertex_buffers.gpu_buffer,
                 vertex_buffer_view,
                 vertex_buffers.upload_buffer,
             )
+        };
+
+        let (indices_buffer, indices_buffer_view, _indicies_upload_buffer) = unsafe {
+            // Vertex indicies which form the two triangles:
+            let indices: [u32; 6] = [
+                0, 1, 2, // Upper right triangle
+                0, 2, 3, // Bottom left triangle
+            ];
+
+            let indicies_as_bytes = std::slice::from_raw_parts(
+                (&indices as *const _) as *const u8,
+                std::mem::size_of_val(&indices),
+            );
+
+            let buffers = create_default_buffer(&device, &list, indicies_as_bytes)?;
+
+            let view = D3D12_INDEX_BUFFER_VIEW {
+                buffer_location: buffers.gpu_buffer.GetGPUVirtualAddress(),
+                size_in_bytes: indicies_as_bytes.len() as _,
+                format: DXGI_FORMAT::DXGI_FORMAT_R32_UINT,
+            };
+
+            (buffers.gpu_buffer, view, buffers.upload_buffer)
         };
 
         unsafe {
@@ -560,12 +577,14 @@ impl Window {
             fence_values,
             vertex_buffer,
             vertex_buffer_view,
+            indices_buffer,
+            indices_buffer_view,
         };
 
         win.wait_for_gpu()?;
 
-        // Note that _vertex_buffer_upload can now be destroyed as it's now
-        // copied to GPU only buffer
+        // Temporary upload buffers _indicies_upload_buffer, and
+        // _vertex_buffer_upload can now be destroyed.
 
         // End of resource initialization -------------------------------
 
@@ -615,8 +634,9 @@ impl Window {
             self.list.IASetPrimitiveTopology(
                 D3D_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
             );
+            self.list.IASetIndexBuffer(&self.indices_buffer_view);
             self.list.IASetVertexBuffers(0, 1, &self.vertex_buffer_view);
-            self.list.DrawInstanced(3, 1, 0, 0);
+            self.list.DrawIndexedInstanced(6, 1, 0, 0, 0);
 
             // Set render target to be presentable
             self.list.ResourceBarrier(
