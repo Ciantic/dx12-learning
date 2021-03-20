@@ -441,7 +441,7 @@ impl Window {
             if fence_event.0 == 0 {
                 panic!("Unable to create fence event");
             }
-            (fence, [0, 0], fence_event)
+            (fence, [0; NUM_OF_FRAMES], fence_event)
         };
 
         let viewport = D3D12_VIEWPORT {
