@@ -465,46 +465,58 @@ impl Window {
         }
 
         let (vertex_buffer, vertex_buffer_view, _vertex_buffer_upload) = unsafe {
-            /*
-            Coordinate space is always as followed:
+            // Coordinate space is always as followed:
+            //
+            // -1.0, +1.0            +1.0, +1.0
+            //     ┌──────────1──────────┐
+            //     │          │          │
+            //     │          │          │
+            //     │          │          │
+            //     │          │          │
+            //     │        0,│0         │
+            //     ├──────────┼──────────┤
+            //     │          │          │
+            //     │          │          │
+            //     │          │          │
+            //     │          │          │
+            //     │          │          │
+            //     3──────────┴──────────2
+            // -1.0, -1.0            +1.0, -1.0
 
-            -1.0, +1.0            +1.0, +1.0
-                ┌──────────┬──────────┐
-                │          │          │
-                │          │          │
-                │          │          │
-                │          │          │
-                │        0,│0         │
-                ├──────────┼──────────┤
-                │          │          │
-                │          │          │
-                │          │          │
-                │          │          │
-                │          │          │
-                └──────────┴──────────┘
-            -1.0, -1.0            +1.0, -1.0
+            // Notice that the vertices are ordered so that they form triangle
+            // when iterated in clockwise. If you tried to create the triangle
+            // in counter clockwise order it would not show up.
 
-            */
-            let cpu_triangle: [Vertex; 3] = [
+            let triangle: [Vertex; 3] = [
                 Vertex::new([0.0, 1.0, 0.0], [1.0, 0.0, 0.0, 1.0]),
                 Vertex::new([1.0, -1.0, 0.0], [0.0, 1.0, 0.0, 1.0]),
                 Vertex::new([-1.0, -1.0, 0.0], [0.0, 0.0, 1.0, 0.5]),
             ];
-            let triangle_size_bytes = std::mem::size_of_val(&cpu_triangle);
 
-            let cpu_triangle_bytes = std::slice::from_raw_parts(
-                (&cpu_triangle as *const _) as *const u8,
-                std::mem::size_of_val(&cpu_triangle),
+            // To send the triangle to GPU, we convert it to bytes
+            let triangle_bytes = std::slice::from_raw_parts(
+                (&triangle as *const _) as *const u8,
+                std::mem::size_of_val(&triangle),
             );
 
-            let vertex_buffers = create_default_buffer(&device, &list, cpu_triangle_bytes)?;
+            // Following creates a GPU only buffer and upload buffer, then it
+            // copies the given bytes from the upload buffer to GPU only buffer.
+            let vertex_buffers = create_default_buffer(&device, &list, triangle_bytes)?;
 
+            // Vertex buffer view is only value refererred later in the drawing
+            // phase.
             let vertex_buffer_view = D3D12_VERTEX_BUFFER_VIEW {
                 buffer_location: vertex_buffers.gpu_buffer.GetGPUVirtualAddress(),
                 stride_in_bytes: std::mem::size_of::<Vertex>() as _,
-                size_in_bytes: triangle_size_bytes as _,
+                size_in_bytes: triangle_bytes.len() as _,
             };
 
+            // Even though vertex_buffer_view is only value referred later, the
+            // gpu_buffer and upload_buffer must be kept alive. GPU buffer must
+            // be kept alive as long as you want to draw the triangle.
+            //
+            // Note: Upload buffer is kept alive *temporarily* until it's known
+            // to be uploaded to the GPU.
             (
                 vertex_buffers.gpu_buffer,
                 vertex_buffer_view,
