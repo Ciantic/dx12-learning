@@ -271,6 +271,36 @@ pub fn cd3dx12_resource_desc_buffer(
     }
 }
 
+pub fn cd3dx12_resource_desc_tex2d(
+    format: DXGI_FORMAT,
+    width: u64,
+    height: u32,
+    array_size: Option<u16>,
+    mip_levels: Option<u16>,
+    sample_count: Option<u32>,
+    sample_quality: Option<u32>,
+    flags: Option<D3D12_RESOURCE_FLAGS>,
+    layout: Option<D3D12_TEXTURE_LAYOUT>,
+    alignment: Option<u64>,
+) -> D3D12_RESOURCE_DESC {
+    // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L1773-L1787
+    D3D12_RESOURCE_DESC {
+        dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+        alignment: alignment.unwrap_or(0),
+        width,
+        depth_or_array_size: array_size.unwrap_or(1),
+        height,
+        mip_levels: mip_levels.unwrap_or(0),
+        format,
+        sample_desc: DXGI_SAMPLE_DESC {
+            count: sample_count.unwrap_or(1),
+            quality: sample_quality.unwrap_or(0),
+        },
+        layout: layout.unwrap_or(D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN),
+        flags: flags.unwrap_or(D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE),
+    }
+}
+
 pub fn cd3dx12_resource_barrier_transition(
     resource: &ID3D12Resource,
     state_before: D3D12_RESOURCE_STATES,

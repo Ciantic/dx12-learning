@@ -156,7 +156,7 @@ impl Window {
                     quality: 0,
                 },
                 scaling: DXGI_SCALING::DXGI_SCALING_STRETCH,
-                stereo: BOOL(1),
+                stereo: BOOL(0),
                 swap_effect: DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
             };
             let mut ptr: Option<IDXGISwapChain1> = None;
