@@ -79,7 +79,7 @@ struct Window {
     indices_buffer: ID3D12Resource,
     indices_buffer_view: D3D12_INDEX_BUFFER_VIEW,
 
-    cb_descriptors: [ID3D12DescriptorHeap; NUM_OF_FRAMES],
+    constant_buffer_heaps: [ID3D12DescriptorHeap; NUM_OF_FRAMES],
     constant_buffers: [(ID3D12Resource, *mut ConstantBuffer); NUM_OF_FRAMES],
 }
 
@@ -328,11 +328,16 @@ impl Window {
         // Steps are roughly:
         //
         // 1. Create a heap
-        // 2. Create a constant buffer resource as upload buffer, send your initial value there
+        // 2. Create a constant buffer resource as upload buffer, send your
+        //    initial value there
         // 3. Assign your constant buffers to the root_signature
+        //
+        // Note that there needs to be as many buffers as there are frames so
+        // that you don't end up updating in-use buffer. In this example however
+        // the value is not updated after the initial value.
 
-        // Create constant buffer heap
-        let cb_descriptors: [ID3D12DescriptorHeap; NUM_OF_FRAMES] = (0..NUM_OF_FRAMES)
+        // Create constant buffer heaps
+        let constant_buffer_heaps: [ID3D12DescriptorHeap; NUM_OF_FRAMES] = (0..NUM_OF_FRAMES)
             .map(|_| unsafe {
                 let mut ptr: Option<ID3D12DescriptorHeap> = None;
                 device
@@ -397,7 +402,7 @@ impl Window {
                         buffer_location: offset,
                         size_in_bytes: cb_size_in_bytes as _,
                     },
-                    cb_descriptors[i].GetCPUDescriptorHandleForHeapStart(),
+                    constant_buffer_heaps[i].GetCPUDescriptorHandleForHeapStart(),
                 );
 
                 (cb, cb_memory_ptr)
@@ -780,7 +785,7 @@ impl Window {
             vertex_buffer_view,
             indices_buffer,
             indices_buffer_view,
-            cb_descriptors,
+            constant_buffer_heaps,
             constant_buffers,
         };
 
