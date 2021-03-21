@@ -8,4 +8,5 @@ Everything considered written by me is licensed with MIT, some bits of the code 
 
 -   [Microsoft's DirectX 12 Samples](https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/Samples/Desktop/D3D12HelloWorld/)
 -   [Introduction to 3D Game Programming with DirectX 12](https://www.amazon.com/Introduction-3D-Game-Programming-DirectX/dp/1942270062)
+-   [Sample codes of Introduction to 3D Game Programming with DirectX 12](https://github.com/d3dcoder/d3d12book)
 -   [Braynzar Soft](https://www.braynzarsoft.net/viewtutorial/q16390-04-direct3d-12-drawing)
