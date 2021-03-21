@@ -664,32 +664,6 @@ impl Window {
         }
 
         let (vertex_buffer, vertex_buffer_view, _vertex_buffer_upload) = unsafe {
-            // Coordinate space again as refresher:
-            //
-            //    x, y
-            // -1.0, +1.0            +1.0, +1.0
-            //     0──────────┬──────────1 ◄─── vertex index
-            //     │          │          │
-            //     │          │          │
-            //     │          │          │
-            //     │          │          │
-            //     │        0,│0         │
-            //     ├──────────┼──────────┤
-            //     │          │          │
-            //     │          │          │
-            //     │          │          │
-            //     │          │          │
-            //     │          │          │
-            //     3──────────┴──────────2
-            // -1.0, -1.0            +1.0, -1.0
-
-            // In order to create quad (that is square), we form two triangles
-            // from the vertices:
-            //
-            // Indices 0, 1, 2 form a first triangle, and
-            // indices 0, 2, 3 form a second triangle.
-
-            // Vertexes (these don't form the triangle, but the indicies do)
             let vertices: [Vertex; 8] = [
                 // First
                 Vertex::new([-0.5, 0.5, 0.8], RED),
