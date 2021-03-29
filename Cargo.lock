@@ -15,9 +15,9 @@ checksum = "fb58b6451e8c2a812ad979ed1d83378caa5e927eef2622017a45f251457c2c9d"
 
 [[package]]
 name = "directx_math"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7fb5024972c62801a84a889ecf1bbcd4cba13e6bcee64b04531f3588d167ce4"
+checksum = "5eef899a5213fad97e095a4695d21cd4398a3e393fe0825954135e27f9da7bc4"
 
 [[package]]
 name = "dx12-common"
@@ -54,9 +54,9 @@ checksum = "1fccf17fd09e2455ea796d2ad267b64fa2c5cbd8701b2a93b555d2aa73449f7d"
 
 [[package]]
 name = "syn"
-version = "1.0.64"
+version = "1.0.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fd9d1e9976102a03c542daa2eff1b43f9d72306342f3f8b3ed5fb8908195d6f"
+checksum = "6498a9efc342871f91cc2d0d694c674368b4ceb40f62b65a7a08c3792935e702"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -71,8 +71,8 @@ checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
 
 [[package]]
 name = "windows"
-version = "0.6.0"
-source = "git+https://github.com/microsoft/windows-rs#bdb9a47439bba1294cdb1d533cde796fca200fb2"
+version = "0.7.0"
+source = "git+https://github.com/microsoft/windows-rs#f2e3fe57fb814c139960cd6e3ebafaa75c263582"
 dependencies = [
  "const-sha1",
  "windows_gen",
@@ -81,30 +81,19 @@ dependencies = [
 
 [[package]]
 name = "windows_gen"
-version = "0.6.0"
-source = "git+https://github.com/microsoft/windows-rs#bdb9a47439bba1294cdb1d533cde796fca200fb2"
+version = "0.7.0"
+source = "git+https://github.com/microsoft/windows-rs#f2e3fe57fb814c139960cd6e3ebafaa75c263582"
 dependencies = [
  "proc-macro2",
  "quote",
  "squote",
  "syn",
- "windows_gen_macros",
-]
-
-[[package]]
-name = "windows_gen_macros"
-version = "0.6.0"
-source = "git+https://github.com/microsoft/windows-rs#bdb9a47439bba1294cdb1d533cde796fca200fb2"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
 name = "windows_macros"
-version = "0.6.0"
-source = "git+https://github.com/microsoft/windows-rs#bdb9a47439bba1294cdb1d533cde796fca200fb2"
+version = "0.7.0"
+source = "git+https://github.com/microsoft/windows-rs#f2e3fe57fb814c139960cd6e3ebafaa75c263582"
 dependencies = [
  "proc-macro2",
  "quote",

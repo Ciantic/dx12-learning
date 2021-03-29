@@ -1,9 +1,11 @@
 use bindings::{
-    windows::win32::direct3d11::*, windows::win32::direct3d12::*, windows::win32::direct3d_hlsl::*,
-    windows::win32::direct_composition::*, windows::win32::display_devices::*,
-    windows::win32::dxgi::*, windows::win32::gdi::*, windows::win32::menus_and_resources::*,
-    windows::win32::system_services::*, windows::win32::windows_and_messaging::*,
+    Windows::Win32::Direct3D11::*, Windows::Win32::Direct3D12::*, Windows::Win32::Direct3DHlsl::*,
+    Windows::Win32::DirectComposition::*, Windows::Win32::DisplayDevices::*,
+    Windows::Win32::Dxgi::*, Windows::Win32::Gdi::*, Windows::Win32::HiDpi::*,
+    Windows::Win32::KeyboardAndMouseInput::*, Windows::Win32::MenusAndResources::*,
+    Windows::Win32::SystemServices::*, Windows::Win32::WindowsAndMessaging::*,
 };
+
 use directx_math::*;
 use dx12_common::{
     cd3dx12_blend_desc_default, cd3dx12_depth_stencil_desc_default,
@@ -124,10 +126,10 @@ impl Window {
         let queue = unsafe {
             let mut ptr: Option<ID3D12CommandQueue> = None;
             let desc = D3D12_COMMAND_QUEUE_DESC {
-                r#type: D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT,
-                priority: D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_HIGH.0,
-                flags: D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE,
-                node_mask: 0,
+                Type: D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT,
+                Priority: D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_HIGH.0,
+                Flags: D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE,
+                NodeMask: 0,
             };
             device
                 .CreateCommandQueue(&desc, &ID3D12CommandQueue::IID, ptr.set_abi())
@@ -159,20 +161,20 @@ impl Window {
         // Create swap chain for composition
         let swap_chain = unsafe {
             let desc = DXGI_SWAP_CHAIN_DESC1 {
-                alpha_mode: DXGI_ALPHA_MODE::DXGI_ALPHA_MODE_PREMULTIPLIED,
-                buffer_count: NUM_OF_FRAMES as _,
-                width: 1024,
-                height: 1024,
-                format: DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM,
-                flags: 0,
-                buffer_usage: DXGI_USAGE_RENDER_TARGET_OUTPUT,
-                sample_desc: DXGI_SAMPLE_DESC {
-                    count: 1,
-                    quality: 0,
+                AlphaMode: DXGI_ALPHA_MODE::DXGI_ALPHA_MODE_PREMULTIPLIED,
+                BufferCount: NUM_OF_FRAMES as _,
+                Width: 1024,
+                Height: 1024,
+                Format: DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM,
+                Flags: 0,
+                BufferUsage: DXGI_USAGE_RENDER_TARGET_OUTPUT,
+                SampleDesc: DXGI_SAMPLE_DESC {
+                    Count: 1,
+                    Quality: 0,
                 },
-                scaling: DXGI_SCALING::DXGI_SCALING_STRETCH,
-                stereo: BOOL(0),
-                swap_effect: DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+                Scaling: DXGI_SCALING::DXGI_SCALING_STRETCH,
+                Stereo: BOOL(0),
+                SwapEffect: DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
             };
             let mut ptr: Option<IDXGISwapChain1> = None;
             factory
@@ -208,10 +210,10 @@ impl Window {
         // Create descriptor heap for render target views
         let rtv_desc_heap = unsafe {
             let desc = D3D12_DESCRIPTOR_HEAP_DESC {
-                r#type: D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-                num_descriptors: NUM_OF_FRAMES as _,
-                flags: D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
-                node_mask: 0,
+                Type: D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+                NumDescriptors: NUM_OF_FRAMES as _,
+                Flags: D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+                NodeMask: 0,
             };
             let mut ptr: Option<ID3D12DescriptorHeap> = None;
             device
@@ -254,10 +256,10 @@ impl Window {
         // Create depth/stencil heap
         let depth_stencil_heap = unsafe {
             let desc = D3D12_DESCRIPTOR_HEAP_DESC {
-                r#type: D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
-                num_descriptors: 1,
-                flags: D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
-                node_mask: 0,
+                Type: D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
+                NumDescriptors: 1,
+                Flags: D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+                NodeMask: 0,
             };
             let mut ptr: Option<ID3D12DescriptorHeap> = None;
             device
@@ -273,32 +275,32 @@ impl Window {
                     &cd3dx12_heap_properties_with_type(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT),
                     D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
                     &D3D12_RESOURCE_DESC {
-                        alignment: 0,
-                        width: 1024,
-                        height: 1024,
+                        Alignment: 0,
+                        Width: 1024,
+                        Height: 1024,
 
                         // If DXGI_SWAP_CHAIN_DESC1::Stereo is TRUE (3d glasses
                         // support) following array size needs to be 2:
-                        depth_or_array_size: 1,
+                        DepthOrArraySize: 1,
 
-                        mip_levels: 1,
-                        dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-                        sample_desc: DXGI_SAMPLE_DESC {
-                            count: 1,
-                            quality: 0,
+                        MipLevels: 1,
+                        Dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+                        SampleDesc: DXGI_SAMPLE_DESC {
+                            Count: 1,
+                            Quality: 0,
                         },
-                        format: DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT,
-                        flags: D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
+                        Format: DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT,
+                        Flags: D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
                         ..std::mem::zeroed()
                     },
                     // D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON,
                     D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE,
                     &D3D12_CLEAR_VALUE {
-                        format: DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT,
-                        anonymous: D3D12_CLEAR_VALUE_0 {
-                            depth_stencil: D3D12_DEPTH_STENCIL_VALUE {
-                                depth: 1.0,
-                                stencil: 0,
+                        Format: DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT,
+                        Anonymous: D3D12_CLEAR_VALUE_0 {
+                            DepthStencil: D3D12_DEPTH_STENCIL_VALUE {
+                                Depth: 1.0,
+                                Stencil: 0,
                             },
                         },
                     },
@@ -343,11 +345,11 @@ impl Window {
                 device
                 .CreateDescriptorHeap(
                     &D3D12_DESCRIPTOR_HEAP_DESC {
-                        r#type: D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-                        num_descriptors: 1,
-                        flags:
+                        Type: D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+                        NumDescriptors: 1,
+                        Flags:
                             D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-                        node_mask: 0,
+                        NodeMask: 0,
                     },
                     &ID3D12DescriptorHeap::IID,
                     ptr.set_abi(),
@@ -385,7 +387,7 @@ impl Window {
                 let mut cb_memory_ptr = null_mut::<ConstantBuffer>();
                 cb.Map(
                     0,
-                    &D3D12_RANGE { begin: 0, end: 0 },
+                    &D3D12_RANGE { Begin: 0, End: 0 },
                     &mut cb_memory_ptr as *mut *mut _ as *mut *mut _,
                 )
                 .ok()
@@ -399,8 +401,8 @@ impl Window {
                 let offset = cb.GetGPUVirtualAddress();
                 device.CreateConstantBufferView(
                     &D3D12_CONSTANT_BUFFER_VIEW_DESC {
-                        buffer_location: offset,
-                        size_in_bytes: cb_size_in_bytes as _,
+                        BufferLocation: offset,
+                        SizeInBytes: cb_size_in_bytes as _,
                     },
                     constant_buffer_heaps[i].GetCPUDescriptorHandleForHeapStart(),
                 );
@@ -418,22 +420,22 @@ impl Window {
                 let mut error: Option<ID3DBlob> = None;
 
                 let mut params = D3D12_ROOT_PARAMETER {
-                    parameter_type: D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV,
-                    anonymous: D3D12_ROOT_PARAMETER_0 {
-                        descriptor: D3D12_ROOT_DESCRIPTOR {
-                            register_space: 0,
-                            shader_register: 0,
+                    ParameterType: D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV,
+                    Anonymous: D3D12_ROOT_PARAMETER_0 {
+                        Descriptor: D3D12_ROOT_DESCRIPTOR {
+                            RegisterSpace: 0,
+                            ShaderRegister: 0,
                         },
                     },
-                    shader_visibility: D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX,
+                    ShaderVisibility: D3D12_SHADER_VISIBILITY::D3D12_SHADER_VISIBILITY_VERTEX,
                 };
 
                 let desc = D3D12_ROOT_SIGNATURE_DESC {
-                    num_parameters: 1,
-                    p_parameters: &mut params,
-                    num_static_samplers: 0,
-                    p_static_samplers: null_mut() as _,
-                    flags: D3D12_ROOT_SIGNATURE_FLAGS::from(
+                    NumParameters: 1,
+                    pParameters: &mut params,
+                    NumStaticSamplers: 0,
+                    pStaticSamplers: null_mut() as _,
+                    Flags: D3D12_ROOT_SIGNATURE_FLAGS::from(
                         D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT.0 |
                         D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS.0 |
                         D3D12_ROOT_SIGNATURE_FLAGS::D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS.0 |
@@ -533,50 +535,50 @@ impl Window {
 
         let mut els = [
             D3D12_INPUT_ELEMENT_DESC {
-                semantic_name: PSTR("POSITION\0".as_ptr() as _),
-                semantic_index: 0,
-                format: DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT,
-                input_slot: 0,
-                instance_data_step_rate: 0,
-                input_slot_class:
+                SemanticName: PSTR("POSITION\0".as_ptr() as _),
+                SemanticIndex: 0,
+                Format: DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT,
+                InputSlot: 0,
+                InstanceDataStepRate: 0,
+                InputSlotClass:
                     D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                aligned_byte_offset: 0,
+                AlignedByteOffset: 0,
             },
             D3D12_INPUT_ELEMENT_DESC {
-                semantic_name: PSTR("COLOR\0".as_ptr() as _),
-                semantic_index: 0,
-                format: DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT,
-                input_slot: 0,
-                instance_data_step_rate: 0,
-                input_slot_class:
+                SemanticName: PSTR("COLOR\0".as_ptr() as _),
+                SemanticIndex: 0,
+                Format: DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT,
+                InputSlot: 0,
+                InstanceDataStepRate: 0,
+                InputSlotClass:
                     D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                aligned_byte_offset: 12,
+                AlignedByteOffset: 12,
             },
         ];
 
         let pso_desc = D3D12_GRAPHICS_PIPELINE_STATE_DESC {
             // TODO: Can I get rid of this clone? Or do I even have to?
-            p_root_signature: Some(root_signature.clone()),
+            pRootSignature: Some(root_signature.clone()),
             // unsafe { std::mem::transmute(root_signature.abi()) },
-            input_layout: D3D12_INPUT_LAYOUT_DESC {
-                num_elements: els.len() as u32,
-                p_input_element_descs: els.as_mut_ptr(),
+            InputLayout: D3D12_INPUT_LAYOUT_DESC {
+                NumElements: els.len() as u32,
+                pInputElementDescs: els.as_mut_ptr(),
             },
-            vs: D3D12_SHADER_BYTECODE {
-                bytecode_length: unsafe { vertex_shader.GetBufferSize() },
-                p_shader_bytecode: unsafe { vertex_shader.GetBufferPointer() },
+            VS: D3D12_SHADER_BYTECODE {
+                BytecodeLength: unsafe { vertex_shader.GetBufferSize() },
+                pShaderBytecode: unsafe { vertex_shader.GetBufferPointer() },
             },
-            ps: D3D12_SHADER_BYTECODE {
-                bytecode_length: unsafe { pixel_shader.GetBufferSize() },
-                p_shader_bytecode: unsafe { pixel_shader.GetBufferPointer() },
+            PS: D3D12_SHADER_BYTECODE {
+                BytecodeLength: unsafe { pixel_shader.GetBufferSize() },
+                pShaderBytecode: unsafe { pixel_shader.GetBufferPointer() },
             },
-            rasterizer_state: cd3dx12_rasterizer_desc_default(),
-            blend_state: cd3dx12_blend_desc_default(),
-            sample_mask: 0xffffffff,
-            primitive_topology_type:
+            RasterizerState: cd3dx12_rasterizer_desc_default(),
+            BlendState: cd3dx12_blend_desc_default(),
+            SampleMask: 0xffffffff,
+            PrimitiveTopologyType:
                 D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-            num_render_targets: 1,
-            rtv_formats: (0..D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
+            NumRenderTargets: 1,
+            RTVFormats: (0..D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
                 .map(|i| {
                     if i == 0 {
                         DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM
@@ -587,12 +589,12 @@ impl Window {
                 .collect::<Vec<_>>()
                 .try_into()
                 .unwrap(),
-            sample_desc: DXGI_SAMPLE_DESC {
-                count: 1,
-                quality: 0,
+            SampleDesc: DXGI_SAMPLE_DESC {
+                Count: 1,
+                Quality: 0,
             },
-            dsv_format: DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT,
-            depth_stencil_state: cd3dx12_depth_stencil_desc_default(),
+            DSVFormat: DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT,
+            DepthStencilState: cd3dx12_depth_stencil_desc_default(),
             ..D3D12_GRAPHICS_PIPELINE_STATE_DESC::default()
         };
 
@@ -641,12 +643,12 @@ impl Window {
         };
 
         let viewport = D3D12_VIEWPORT {
-            width: 1024.0,
-            height: 1024.0,
-            max_depth: D3D12_MAX_DEPTH,
-            min_depth: D3D12_MIN_DEPTH,
-            top_leftx: 0.0,
-            top_lefty: 0.0,
+            Width: 1024.0,
+            Height: 1024.0,
+            MaxDepth: D3D12_MAX_DEPTH,
+            MinDepth: D3D12_MIN_DEPTH,
+            TopLeftX: 0.0,
+            TopLeftY: 0.0,
         };
 
         let scissor = RECT {
@@ -685,9 +687,9 @@ impl Window {
             let vertex_buffers = create_default_buffer(&device, &list, vertices_as_bytes)?;
 
             let vertex_buffer_view = D3D12_VERTEX_BUFFER_VIEW {
-                buffer_location: vertex_buffers.gpu_buffer.GetGPUVirtualAddress(),
-                stride_in_bytes: std::mem::size_of::<Vertex>() as _,
-                size_in_bytes: vertices_as_bytes.len() as _,
+                BufferLocation: vertex_buffers.gpu_buffer.GetGPUVirtualAddress(),
+                StrideInBytes: std::mem::size_of::<Vertex>() as _,
+                SizeInBytes: vertices_as_bytes.len() as _,
             };
 
             (
@@ -714,9 +716,9 @@ impl Window {
             let buffers = create_default_buffer(&device, &list, indicies_as_bytes)?;
 
             let view = D3D12_INDEX_BUFFER_VIEW {
-                buffer_location: buffers.gpu_buffer.GetGPUVirtualAddress(),
-                size_in_bytes: indicies_as_bytes.len() as _,
-                format: DXGI_FORMAT::DXGI_FORMAT_R32_UINT,
+                BufferLocation: buffers.gpu_buffer.GetGPUVirtualAddress(),
+                SizeInBytes: indicies_as_bytes.len() as _,
+                Format: DXGI_FORMAT::DXGI_FORMAT_R32_UINT,
             };
 
             (buffers.gpu_buffer, view, buffers.upload_buffer)
@@ -936,25 +938,25 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM)
 fn main() {
     unsafe {
         let instance = HINSTANCE(GetModuleHandleA(PSTR(null_mut())));
-        let cursor = LoadCursorA(HINSTANCE(0), PSTR(IDC_ARROW as _));
+        let cursor = LoadCursorW(HINSTANCE(0), IDC_ARROW);
         let cls = WNDCLASSA {
             style: WNDCLASS_STYLES::CS_HREDRAW | WNDCLASS_STYLES::CS_VREDRAW,
-            lpfn_wnd_proc: Some(wndproc),
-            h_instance: instance,
-            lpsz_class_name: PSTR(b"CompositionCls\0".as_ptr() as _),
-            cb_cls_extra: 0,
-            cb_wnd_extra: 0,
-            h_icon: HICON(0),
-            h_cursor: cursor,
-            hbr_background: HBRUSH(0),
-            lpsz_menu_name: PSTR(null_mut()),
+            lpfnWndProc: Some(wndproc),
+            hInstance: instance,
+            lpszClassName: PSTR(b"CompositionCls\0".as_ptr() as _),
+            cbClsExtra: 0,
+            cbWndExtra: 0,
+            hIcon: HICON(0),
+            hCursor: cursor,
+            hbrBackground: HBRUSH(0),
+            lpszMenuName: PSTR(null_mut()),
         };
         RegisterClassA(&cls);
         let hwnd = CreateWindowExA(
-            WINDOWS_EX_STYLE::WS_EX_NOREDIRECTIONBITMAP as _,
+            WINDOW_EX_STYLE::WS_EX_NOREDIRECTIONBITMAP as _,
             PSTR(b"CompositionCls\0".as_ptr() as _),
             PSTR(b"Constant Buffer example\0".as_ptr() as _),
-            WINDOWS_STYLE::WS_OVERLAPPEDWINDOW | WINDOWS_STYLE::WS_VISIBLE,
+            WINDOW_STYLE::WS_OVERLAPPEDWINDOW | WINDOW_STYLE::WS_VISIBLE,
             -2147483648 as _, // Where is CW_USEDEFAULT? I just hardcoded the value
             -2147483648 as _,
             -2147483648 as _,

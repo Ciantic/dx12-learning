@@ -2,10 +2,11 @@
 /// CD3DX12 Helper functions from here:
 /// https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h
 use bindings::{
-    windows::win32::direct3d11::*, windows::win32::direct3d12::*, windows::win32::direct3d_hlsl::*,
-    windows::win32::direct_composition::*, windows::win32::display_devices::*,
-    windows::win32::dxgi::*, windows::win32::gdi::*, windows::win32::menus_and_resources::*,
-    windows::win32::system_services::*, windows::win32::windows_and_messaging::*,
+    Windows::Win32::Direct3D12::*, Windows::Win32::Direct3DHlsl::*,
+    Windows::Win32::DirectComposition::*, Windows::Win32::DisplayDevices::*,
+    Windows::Win32::Dxgi::*, Windows::Win32::Gdi::*, Windows::Win32::HiDpi::*,
+    Windows::Win32::KeyboardAndMouseInput::*, Windows::Win32::MenusAndResources::*,
+    Windows::Win32::SystemServices::*, Windows::Win32::WindowsAndMessaging::*,
 };
 use directx_math::*;
 use std::{convert::TryInto, ffi::CString, mem};
@@ -57,9 +58,9 @@ pub fn create_default_buffer(
     }?;
 
     let mut sub_data = D3D12_SUBRESOURCE_DATA {
-        p_data: data.as_ptr() as *mut _,
-        row_pitch: data.len() as _,
-        slice_pitch: data.len() as _,
+        pData: data.as_ptr() as *mut _,
+        RowPitch: data.len() as _,
+        SlicePitch: data.len() as _,
         ..Default::default()
     };
 
@@ -144,7 +145,7 @@ impl<T: Sized> UploadBuffer<T> {
             buffer
                 .Map(
                     0,
-                    &D3D12_RANGE { begin: 0, end: 0 },
+                    &D3D12_RANGE { Begin: 0, End: 0 },
                     &mut gpu_memory_ptr as *mut *mut _ as *mut *mut _,
                 )
                 .ok()
@@ -179,8 +180,8 @@ impl<T: Sized> UploadBuffer<T> {
         unsafe {
             device.CreateConstantBufferView(
                 &D3D12_CONSTANT_BUFFER_VIEW_DESC {
-                    buffer_location: self.gpu_virtual_address(),
-                    size_in_bytes: self.aligned_size as _,
+                    BufferLocation: self.gpu_virtual_address(),
+                    SizeInBytes: self.aligned_size as _,
                 },
                 cbv_heap.GetCPUDescriptorHandleForHeapStart(),
             );
@@ -202,25 +203,25 @@ pub fn create_upload_buffer(
 ) -> ::windows::Result<ID3D12Resource> {
     unsafe {
         let props = D3D12_HEAP_PROPERTIES {
-            r#type: D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD,
-            cpu_page_property: D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-            creation_node_mask: 1,
-            visible_node_mask: 1,
-            memory_pool_preference: D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN,
+            Type: D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD,
+            CPUPageProperty: D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            CreationNodeMask: 1,
+            VisibleNodeMask: 1,
+            MemoryPoolPreference: D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN,
         };
         let desc = D3D12_RESOURCE_DESC {
-            alignment: 0,
-            flags: D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE,
-            dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER,
-            depth_or_array_size: 1,
-            format: DXGI_FORMAT::DXGI_FORMAT_UNKNOWN,
-            height: 1,
-            width: data.len() as u64,
-            layout: D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-            mip_levels: 1,
-            sample_desc: DXGI_SAMPLE_DESC {
-                count: 1,
-                quality: 0,
+            Alignment: 0,
+            Flags: D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE,
+            Dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER,
+            DepthOrArraySize: 1,
+            Format: DXGI_FORMAT::DXGI_FORMAT_UNKNOWN,
+            Height: 1,
+            Width: data.len() as u64,
+            Layout: D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+            MipLevels: 1,
+            SampleDesc: DXGI_SAMPLE_DESC {
+                Count: 1,
+                Quality: 0,
             },
         };
         let mut ptr: Option<ID3D12Resource> = None;
@@ -240,7 +241,7 @@ pub fn create_upload_buffer(
         resource
             .Map(
                 0,
-                &D3D12_RANGE { begin: 0, end: 0 },
+                &D3D12_RANGE { Begin: 0, End: 0 },
                 &mut gpu_data as *mut *mut _ as *mut *mut _,
             )
             .ok()?;
@@ -263,34 +264,34 @@ pub fn create_upload_buffer(
 pub fn cd3dx12_heap_properties_with_type(heap_type: D3D12_HEAP_TYPE) -> D3D12_HEAP_PROPERTIES {
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L423-L433
     D3D12_HEAP_PROPERTIES {
-        r#type: heap_type,
-        cpu_page_property: D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-        memory_pool_preference: D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN,
-        creation_node_mask: 1,
-        visible_node_mask: 1,
+        Type: heap_type,
+        CPUPageProperty: D3D12_CPU_PAGE_PROPERTY::D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+        MemoryPoolPreference: D3D12_MEMORY_POOL::D3D12_MEMORY_POOL_UNKNOWN,
+        CreationNodeMask: 1,
+        VisibleNodeMask: 1,
     }
 }
 
 pub const fn cd3dx12_depth_stencil_desc_default() -> D3D12_DEPTH_STENCIL_DESC {
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L177-L189
     D3D12_DEPTH_STENCIL_DESC {
-        depth_enable: BOOL(1),
-        depth_write_mask: D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ALL,
-        depth_func: D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_LESS,
-        stencil_enable: BOOL(0),
-        stencil_read_mask: D3D12_DEFAULT_STENCIL_READ_MASK as _,
-        stencil_write_mask: D3D12_DEFAULT_STENCIL_WRITE_MASK as _,
-        front_face: D3D12_DEPTH_STENCILOP_DESC {
-            stencil_depth_fail_op: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
-            stencil_fail_op: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
-            stencil_pass_op: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
-            stencil_func: D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_ALWAYS,
+        DepthEnable: BOOL(1),
+        DepthWriteMask: D3D12_DEPTH_WRITE_MASK::D3D12_DEPTH_WRITE_MASK_ALL,
+        DepthFunc: D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_LESS,
+        StencilEnable: BOOL(0),
+        StencilReadMask: D3D12_DEFAULT_STENCIL_READ_MASK as _,
+        StencilWriteMask: D3D12_DEFAULT_STENCIL_WRITE_MASK as _,
+        FrontFace: D3D12_DEPTH_STENCILOP_DESC {
+            StencilDepthFailOp: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
+            StencilFailOp: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
+            StencilPassOp: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
+            StencilFunc: D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_ALWAYS,
         },
-        back_face: D3D12_DEPTH_STENCILOP_DESC {
-            stencil_depth_fail_op: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
-            stencil_fail_op: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
-            stencil_pass_op: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
-            stencil_func: D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_ALWAYS,
+        BackFace: D3D12_DEPTH_STENCILOP_DESC {
+            StencilDepthFailOp: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
+            StencilFailOp: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
+            StencilPassOp: D3D12_STENCIL_OP::D3D12_STENCIL_OP_KEEP,
+            StencilFunc: D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_ALWAYS,
         },
     }
 }
@@ -298,20 +299,20 @@ pub const fn cd3dx12_depth_stencil_desc_default() -> D3D12_DEPTH_STENCIL_DESC {
 pub fn cd3dx12_blend_desc_default() -> D3D12_BLEND_DESC {
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L323-L338
     D3D12_BLEND_DESC {
-        alpha_to_coverage_enable: BOOL(0),
-        independent_blend_enable: BOOL(0),
-        render_target: (0..D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
+        AlphaToCoverageEnable: BOOL(0),
+        IndependentBlendEnable: BOOL(0),
+        RenderTarget: (0..D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT)
             .map(|_| D3D12_RENDER_TARGET_BLEND_DESC {
-                blend_enable: false.into(),
-                logic_op_enable: false.into(),
-                dest_blend: D3D12_BLEND::D3D12_BLEND_ZERO,
-                src_blend: D3D12_BLEND::D3D12_BLEND_ZERO,
-                dest_blend_alpha: D3D12_BLEND::D3D12_BLEND_ONE,
-                src_blend_alpha: D3D12_BLEND::D3D12_BLEND_ONE,
-                blend_op: D3D12_BLEND_OP::D3D12_BLEND_OP_ADD,
-                logic_op: D3D12_LOGIC_OP::D3D12_LOGIC_OP_NOOP,
-                blend_op_alpha: D3D12_BLEND_OP::D3D12_BLEND_OP_ADD,
-                render_target_write_mask: D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL.0
+                BlendEnable: false.into(),
+                LogicOpEnable: false.into(),
+                DestBlend: D3D12_BLEND::D3D12_BLEND_ZERO,
+                SrcBlend: D3D12_BLEND::D3D12_BLEND_ZERO,
+                DestBlendAlpha: D3D12_BLEND::D3D12_BLEND_ONE,
+                SrcBlendAlpha: D3D12_BLEND::D3D12_BLEND_ONE,
+                BlendOp: D3D12_BLEND_OP::D3D12_BLEND_OP_ADD,
+                LogicOp: D3D12_LOGIC_OP::D3D12_LOGIC_OP_NOOP,
+                BlendOpAlpha: D3D12_BLEND_OP::D3D12_BLEND_OP_ADD,
+                RenderTargetWriteMask: D3D12_COLOR_WRITE_ENABLE::D3D12_COLOR_WRITE_ENABLE_ALL.0
                     as _,
             })
             .collect::<Vec<_>>()
@@ -324,17 +325,17 @@ pub fn cd3dx12_blend_desc_default() -> D3D12_BLEND_DESC {
 pub fn cd3dx12_rasterizer_desc_default() -> D3D12_RASTERIZER_DESC {
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L349-L359
     D3D12_RASTERIZER_DESC {
-        fill_mode: D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID,
-        cull_mode: D3D12_CULL_MODE::D3D12_CULL_MODE_BACK,
-        front_counter_clockwise: false.into(),
-        depth_bias: D3D12_DEFAULT_DEPTH_BIAS as _,
-        depth_bias_clamp: D3D12_DEFAULT_DEPTH_BIAS_CLAMP,
-        slope_scaled_depth_bias: D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
-        depth_clip_enable: true.into(),
-        multisample_enable: false.into(),
-        antialiased_line_enable: false.into(),
-        forced_sample_count: 0,
-        conservative_raster:
+        FillMode: D3D12_FILL_MODE::D3D12_FILL_MODE_SOLID,
+        CullMode: D3D12_CULL_MODE::D3D12_CULL_MODE_BACK,
+        FrontCounterClockwise: false.into(),
+        DepthBias: D3D12_DEFAULT_DEPTH_BIAS as _,
+        DepthBiasClamp: D3D12_DEFAULT_DEPTH_BIAS_CLAMP,
+        SlopeScaledDepthBias: D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
+        DepthClipEnable: true.into(),
+        MultisampleEnable: false.into(),
+        AntialiasedLineEnable: false.into(),
+        ForcedSampleCount: 0,
+        ConservativeRaster:
             D3D12_CONSERVATIVE_RASTERIZATION_MODE::D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF,
     }
 }
@@ -347,19 +348,19 @@ pub fn cd3dx12_resource_desc_buffer(
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L1754-L1756
     // Order follows the C++ function call order
     D3D12_RESOURCE_DESC {
-        dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER,
-        alignment: alignment.unwrap_or(0),
-        width,
-        depth_or_array_size: 1,
-        height: 1,
-        mip_levels: 1,
-        format: DXGI_FORMAT::DXGI_FORMAT_UNKNOWN,
-        sample_desc: DXGI_SAMPLE_DESC {
-            count: 1,
-            quality: 0,
+        Dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER,
+        Alignment: alignment.unwrap_or(0),
+        Width: width,
+        DepthOrArraySize: 1,
+        Height: 1,
+        MipLevels: 1,
+        Format: DXGI_FORMAT::DXGI_FORMAT_UNKNOWN,
+        SampleDesc: DXGI_SAMPLE_DESC {
+            Count: 1,
+            Quality: 0,
         },
-        layout: D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-        flags: flags.unwrap_or(D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE),
+        Layout: D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+        Flags: flags.unwrap_or(D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE),
     }
 }
 
@@ -377,19 +378,19 @@ pub fn cd3dx12_resource_desc_tex2d(
 ) -> D3D12_RESOURCE_DESC {
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L1773-L1787
     D3D12_RESOURCE_DESC {
-        dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-        alignment: alignment.unwrap_or(0),
-        width,
-        depth_or_array_size: array_size.unwrap_or(1),
-        height,
-        mip_levels: mip_levels.unwrap_or(0),
-        format,
-        sample_desc: DXGI_SAMPLE_DESC {
-            count: sample_count.unwrap_or(1),
-            quality: sample_quality.unwrap_or(0),
+        Dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+        Alignment: alignment.unwrap_or(0),
+        Width: width,
+        DepthOrArraySize: array_size.unwrap_or(1),
+        Height: height,
+        MipLevels: mip_levels.unwrap_or(0),
+        Format: format,
+        SampleDesc: DXGI_SAMPLE_DESC {
+            Count: sample_count.unwrap_or(1),
+            Quality: sample_quality.unwrap_or(0),
         },
-        layout: layout.unwrap_or(D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN),
-        flags: flags.unwrap_or(D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE),
+        Layout: layout.unwrap_or(D3D12_TEXTURE_LAYOUT::D3D12_TEXTURE_LAYOUT_UNKNOWN),
+        Flags: flags.unwrap_or(D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_NONE),
     }
 }
 
@@ -405,14 +406,14 @@ pub fn cd3dx12_resource_barrier_transition(
     let flags = flags.unwrap_or(D3D12_RESOURCE_BARRIER_FLAGS::D3D12_RESOURCE_BARRIER_FLAG_NONE);
 
     let mut barrier = D3D12_RESOURCE_BARRIER {
-        r#type: D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-        flags,
+        Type: D3D12_RESOURCE_BARRIER_TYPE::D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+        Flags: flags,
         ..unsafe { std::mem::zeroed() }
     };
-    barrier.anonymous.transition.subresource = subresource;
-    barrier.anonymous.transition.p_resource = resource.abi();
-    barrier.anonymous.transition.state_before = state_before;
-    barrier.anonymous.transition.state_after = state_after;
+    barrier.Anonymous.Transition.Subresource = subresource;
+    barrier.Anonymous.Transition.pResource = resource.abi();
+    barrier.Anonymous.Transition.StateBefore = state_before;
+    barrier.Anonymous.Transition.StateAfter = state_after;
     barrier
 }
 
@@ -422,15 +423,15 @@ pub fn cd3dx12_texture_copy_location_sub(
 ) -> D3D12_TEXTURE_COPY_LOCATION {
     let mut res = D3D12_TEXTURE_COPY_LOCATION {
         // TODO: This should be pointer, can I get rid of clone?
-        p_resource: Some(res.clone()),
-        r#type: D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+        pResource: Some(res.clone()),
+        Type: D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
         ..unsafe { std::mem::zeroed() }
     };
 
-    res.anonymous.placed_footprint = D3D12_PLACED_SUBRESOURCE_FOOTPRINT {
+    res.Anonymous.PlacedFootprint = D3D12_PLACED_SUBRESOURCE_FOOTPRINT {
         ..unsafe { std::mem::zeroed() }
     };
-    res.anonymous.subresource_index = sub;
+    res.Anonymous.SubresourceIndex = sub;
     res
 }
 
@@ -440,11 +441,11 @@ pub fn cd3dx12_texture_copy_location_footprint(
 ) -> D3D12_TEXTURE_COPY_LOCATION {
     let mut res = D3D12_TEXTURE_COPY_LOCATION {
         // TODO: This should be pointer, can I get rid of clone?
-        p_resource: Some(res.clone()),
-        r#type: D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+        pResource: Some(res.clone()),
+        Type: D3D12_TEXTURE_COPY_TYPE::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
         ..unsafe { std::mem::zeroed() }
     };
-    res.anonymous.placed_footprint = footprint.clone();
+    res.Anonymous.PlacedFootprint = footprint.clone();
     res
 }
 
@@ -504,10 +505,10 @@ pub fn update_subresources(
     // Minor validation
     let intermediate_desc = unsafe { intermediate.GetDesc() };
     let dest_desc = unsafe { dest_resource.GetDesc() };
-    if intermediate_desc.dimension != D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER
-        || intermediate_desc.width < (required_size + layouts[0].offset)
+    if intermediate_desc.Dimension != D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER
+        || intermediate_desc.Width < (required_size + layouts[0].Offset)
         || required_size > (SIZE_T_MINUS1 as u64)
-        || (dest_desc.dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER
+        || (dest_desc.Dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER
             && (first_subresource != 0 || num_subresources != 1))
     {
         return Ok(0); // TODO: Is this actually a failure?
@@ -523,9 +524,9 @@ pub fn update_subresources(
         }
 
         let mut dest_data = D3D12_MEMCPY_DEST {
-            p_data: ((p_data as u64) + layouts[i].offset) as *mut _,
-            row_pitch: layouts[i].footprint.row_pitch as _,
-            slice_pitch: mem::size_of_val(&layouts[i].footprint.row_pitch)
+            pData: ((p_data as u64) + layouts[i].Offset) as *mut _,
+            RowPitch: layouts[i].Footprint.RowPitch as _,
+            SlicePitch: mem::size_of_val(&layouts[i].Footprint.RowPitch)
                 * mem::size_of_val(&num_rows[i]),
         };
         memcpy_subresource(
@@ -533,21 +534,21 @@ pub fn update_subresources(
             &src_data[i],
             row_sizes_in_bytes[i] as _,
             num_rows[i],
-            layouts[i].footprint.depth,
+            layouts[i].Footprint.Depth,
         )
     }
     unsafe {
         intermediate.Unmap(0, null_mut());
     }
 
-    if dest_desc.dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER {
+    if dest_desc.Dimension == D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_BUFFER {
         unsafe {
             list.CopyBufferRegion(
                 dest_resource,
                 0,
                 intermediate,
-                layouts[0].offset,
-                layouts[0].footprint.width as _,
+                layouts[0].Offset,
+                layouts[0].Footprint.Width as _,
             );
         }
     } else {
@@ -584,12 +585,12 @@ pub fn memcpy_subresource(
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L1983-L2001
     for z in 0..(num_slices as usize) {
         unsafe {
-            let dest_slice = ((*dest).p_data as usize) + (*dest).slice_pitch * z;
-            let src_slice = ((*src).p_data as usize) + ((*src).slice_pitch as usize) * z;
+            let dest_slice = ((*dest).pData as usize) + (*dest).SlicePitch * z;
+            let src_slice = ((*src).pData as usize) + ((*src).SlicePitch as usize) * z;
             for y in 0..(num_rows as usize) {
                 std::ptr::copy_nonoverlapping(
-                    (src_slice + ((*src).row_pitch as usize) * y) as *const u8,
-                    (dest_slice + (*dest).row_pitch * y) as *mut u8,
+                    (src_slice + ((*src).RowPitch as usize) * y) as *const u8,
+                    (dest_slice + (*dest).RowPitch * y) as *mut u8,
                     row_size_in_bytes,
                 );
             }
