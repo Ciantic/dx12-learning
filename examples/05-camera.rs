@@ -118,8 +118,9 @@ impl FrameResource {
             &device,
             &ObjectConstantBuffer {
                 world: {
+                    // Cube is sized 10x10x10, and placed in the origo
                     let world = XMMatrixIdentity();
-                    let world = XMMatrixMultiply(world, &XMMatrixScaling(0.3, 0.3, 0.3));
+                    let world = XMMatrixMultiply(world, &XMMatrixScaling(10.0, 10.0, 10.0));
                     let world = XMMatrixMultiply(world, &XMMatrixTranslation(0.0, 0.0, 0.0));
                     let mut out: XMFLOAT4X4 = unsafe { std::mem::zeroed() };
                     XMStoreFloat4x4(&mut out, world);
@@ -139,14 +140,19 @@ impl FrameResource {
     }
 
     pub fn update_constant_buffers(&mut self, camera: &Camera) {
-        let (proj, view) = camera.get_proj_view(XM_PIDIV2, 1.0, 128.0, 1024.0, 1024.0);
+        let (proj, view) = camera.get_proj_view(45.0, 1.0, 120.0, 1024.0, 1024.0);
         self.scene_cb.update(&SceneConstantBuffer { view, proj })
     }
 }
 
 struct Camera {
+    /// Location of the camera
     eye: XMVECTOR,
+
+    /// Position the camera is looking at
     at: XMVECTOR,
+
+    /// Up vector of camera
     up: XMVECTOR,
 }
 
@@ -183,14 +189,14 @@ impl Camera {
         (proj, view)
     }
 
-    pub fn rotate_yaw(&mut self, deg: f32) {
-        let rotation = XMMatrixRotationAxis(self.up, deg);
+    pub fn rotate_yaw(&mut self, radians: f32) {
+        let rotation = XMMatrixRotationAxis(self.up, radians);
         self.eye = XMVector3TransformCoord(self.eye, rotation);
     }
 
-    pub fn rotate_pitch(&mut self, deg: f32) {
+    pub fn rotate_pitch(&mut self, radians: f32) {
         let right = XMVector3Normalize(XMVector3Cross(self.eye, self.up));
-        let rotation = XMMatrixRotationAxis(right, deg);
+        let rotation = XMMatrixRotationAxis(right, radians);
         self.eye = XMVector3TransformCoord(self.eye, rotation);
     }
 }
@@ -759,7 +765,8 @@ impl Window {
         };
 
         let camera = Camera {
-            eye: XMVectorSet(15.0, 15.0, -30.0, 0.0),
+            // camera location (eye), camera look at position, camera up direction
+            eye: XMVectorSet(30.0, 30.0, -30.0, 0.0),
             at: XMVectorSet(0.0, 0.0, 0.0, 0.0),
             up: XMVectorSet(0.0, 1.0, 0.0, 0.0),
         };
