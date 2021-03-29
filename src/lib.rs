@@ -57,13 +57,6 @@ pub fn create_default_buffer(
             .and_some(ptr)
     }?;
 
-    let mut sub_data = D3D12_SUBRESOURCE_DATA {
-        pData: data.as_ptr() as *mut _,
-        RowPitch: data.len() as _,
-        SlicePitch: data.len() as _,
-        ..Default::default()
-    };
-
     unsafe {
         list.ResourceBarrier(
             1,
@@ -77,14 +70,18 @@ pub fn create_default_buffer(
         );
     }
 
-    update_subresources::<1>(
+    update_subresources_stack_alloc::<1>(
         &list,
         &default_buffer,
         &upload_buffer,
         0,
         0,
-        1,
-        &mut sub_data,
+        &mut [D3D12_SUBRESOURCE_DATA {
+            pData: data.as_ptr() as *mut _,
+            RowPitch: data.len() as _,
+            SlicePitch: data.len() as _,
+            ..Default::default()
+        }],
     )?;
 
     unsafe {
@@ -457,7 +454,29 @@ const SIZE_T_MINUS1: usize = usize::MAX;
 /// Update subresources
 //
 /// This is mimicking stack allocation implementation
-pub fn update_subresources<const MAX_SUBRESOURCES: usize>(
+pub fn update_subresources_stack_alloc<const MAX_SUBRESOURCES: usize>(
+    list: &ID3D12GraphicsCommandList,
+    dest_resource: &ID3D12Resource,
+    intermediate: &ID3D12Resource,
+    intermediate_offset: u64,
+    first_subresource: u32,
+    p_src_data: &mut [D3D12_SUBRESOURCE_DATA; MAX_SUBRESOURCES],
+) -> ::windows::Result<u64> {
+    update_subresources_stack_alloc_raw::<MAX_SUBRESOURCES>(
+        list,
+        dest_resource,
+        intermediate,
+        intermediate_offset,
+        first_subresource,
+        p_src_data.len() as _,
+        p_src_data.as_mut_ptr(),
+    )
+}
+
+/// Update subresources
+//
+/// This is mimicking stack allocation implementation
+fn update_subresources_stack_alloc_raw<const MAX_SUBRESOURCES: usize>(
     list: &ID3D12GraphicsCommandList,
     dest_resource: &ID3D12Resource,
     intermediate: &ID3D12Resource,
