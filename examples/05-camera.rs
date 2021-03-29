@@ -15,7 +15,7 @@ use std::{borrow::BorrowMut, ptr::null_mut};
 use std::{convert::TryInto, ffi::CString};
 use windows::{Abi, Interface};
 
-const NUM_OF_FRAMES: usize = 2;
+const NUM_OF_FRAMES: usize = 3;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -1065,6 +1065,7 @@ impl Window {
                 self.fence
                     .SetEventOnCompletion(frame.fence_value, self.fence_event)
                     .ok()?;
+                println!("Waiting for a frame... {}", self.current_frame);
                 WaitForSingleObjectEx(self.fence_event, 0xFFFFFFFF, false);
             }
         }
