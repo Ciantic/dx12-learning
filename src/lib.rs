@@ -7,6 +7,7 @@ use bindings::{
     windows::win32::dxgi::*, windows::win32::gdi::*, windows::win32::menus_and_resources::*,
     windows::win32::system_services::*, windows::win32::windows_and_messaging::*,
 };
+use directx_math::*;
 use std::{convert::TryInto, ffi::CString, mem};
 use std::{ffi::c_void, ptr::null_mut};
 use windows::{Abi, Interface};
@@ -102,6 +103,97 @@ pub fn create_default_buffer(
         gpu_buffer: default_buffer,
         upload_buffer,
     })
+}
+
+// #[derive(Debug)]
+// pub struct ConstantBuffer<T: Sized> {
+//     upload_buffer: UploadBuffer<T>,
+//     shader_visibility: D3D12_SHADER_VISIBILITY,
+// }
+
+#[derive(Debug)]
+pub struct UploadBuffer<T: Sized> {
+    buffer: ID3D12Resource,
+    aligned_size: usize,
+    gpu_memory_ptr: *mut T,
+}
+
+impl<T: Sized> UploadBuffer<T> {
+    pub fn new(device: &ID3D12Device, init_data: &T) -> ::windows::Result<UploadBuffer<T>> {
+        unsafe {
+            let value_size = std::mem::size_of::<T>();
+            let aligned_size = (value_size + 255) & !255;
+
+            // Generic way to create upload buffer and get address:
+            let mut ptr: Option<ID3D12Resource> = None;
+            let buffer = device
+                .CreateCommittedResource(
+                    &cd3dx12_heap_properties_with_type(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD),
+                    D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+                    &cd3dx12_resource_desc_buffer(aligned_size as _, None, None),
+                    D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ,
+                    std::ptr::null(),
+                    &ID3D12Resource::IID,
+                    ptr.set_abi(),
+                )
+                .and_some(ptr)
+                .expect("Unable to create constant buffer resource");
+
+            // Notice that the memory location is left mapped
+            let mut gpu_memory_ptr = null_mut::<T>();
+            buffer
+                .Map(
+                    0,
+                    &D3D12_RANGE { begin: 0, end: 0 },
+                    &mut gpu_memory_ptr as *mut *mut _ as *mut *mut _,
+                )
+                .ok()
+                .expect("Unable to get memory location for constant buffer");
+
+            std::ptr::copy_nonoverlapping(init_data, gpu_memory_ptr, 1);
+
+            Ok(UploadBuffer {
+                aligned_size,
+                buffer,
+                gpu_memory_ptr,
+            })
+        }
+    }
+
+    pub fn update(&mut self, value: &T) {
+        unsafe {
+            std::ptr::copy_nonoverlapping(value, self.gpu_memory_ptr, 1);
+        }
+    }
+
+    pub fn gpu_virtual_address(&self) -> u64 {
+        unsafe { self.buffer.GetGPUVirtualAddress() }
+    }
+
+    pub fn create_constant_buffer_view(
+        &self,
+        device: &ID3D12Device,
+        cbv_heap: &ID3D12DescriptorHeap,
+    ) {
+        // TODO: Should I instead create and output ID3D12DescriptorHeap?
+        unsafe {
+            device.CreateConstantBufferView(
+                &D3D12_CONSTANT_BUFFER_VIEW_DESC {
+                    buffer_location: self.gpu_virtual_address(),
+                    size_in_bytes: self.aligned_size as _,
+                },
+                cbv_heap.GetCPUDescriptorHandleForHeapStart(),
+            );
+        }
+    }
+}
+
+impl<T> Drop for UploadBuffer<T> {
+    fn drop(&mut self) {
+        unsafe {
+            self.buffer.Unmap(0, std::ptr::null());
+        }
+    }
 }
 
 pub fn create_upload_buffer(

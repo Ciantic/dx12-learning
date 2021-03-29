@@ -3,15 +3,19 @@ fn main() {
         windows::win32::direct3d12::*,
         windows::win32::direct3d_hlsl::*,
         windows::win32::dxgi::*,
-        windows::win32::display_devices::RECT,
-        windows::win32::gdi::ValidateRect,
+        windows::win32::display_devices::{RECT},
+        windows::win32::hi_dpi::{SetProcessDpiAwareness, PROCESS_DPI_AWARENESS},
+        windows::win32::gdi::{ValidateRect, ClientToScreen},
         windows::win32::menus_and_resources::{HMENU, HICON},
+        windows::win32::keyboard_and_mouse_input::{
+            SetCapture, ReleaseCapture
+        },
         windows::win32::windows_and_messaging::{
-            CreateWindowExA, DefWindowProcA, DispatchMessageA, GetMessageA, PostQuitMessage,
+            CreateWindowExA, DefWindowProcA, DispatchMessageA, GetMessageA, PostQuitMessage, PeekMessageA,
             TranslateMessage,
-            RegisterClassA, LoadCursorA, HWND, LPARAM, MSG, WNDCLASSA, WPARAM,
-            IDC_ARROW, WM_CREATE,
-            WM_DESTROY, WM_PAINT, WINDOWS_STYLE, WINDOWS_EX_STYLE, WNDCLASS_STYLES
+            RegisterClassA, LoadCursorA, ShowCursor, SetCursor, SetCursorPos, ClipCursor, HWND, LPARAM, MSG, WNDCLASSA, WPARAM,
+            IDC_ARROW, IDC_HAND, IDC_SIZEALL, WM_CREATE, CW_USEDEFAULT,
+            WM_DESTROY, WM_PAINT, WM_QUIT, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WINDOWS_STYLE, WINDOWS_EX_STYLE, WNDCLASS_STYLES, PeekMessage_wRemoveMsg
         },
         windows::win32::system_services::{
             GetModuleHandleA, HINSTANCE, LRESULT, CreateEventA, WaitForSingleObject, WaitForSingleObjectEx
