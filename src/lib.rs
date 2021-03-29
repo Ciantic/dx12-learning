@@ -77,7 +77,7 @@ pub fn create_default_buffer(
         );
     }
 
-    update_subresources(
+    update_subresources::<1>(
         &list,
         &default_buffer,
         &upload_buffer,
@@ -85,7 +85,6 @@ pub fn create_default_buffer(
         0,
         1,
         &mut sub_data,
-        1,
     )?;
 
     unsafe {
@@ -457,9 +456,8 @@ const SIZE_T_MINUS1: usize = usize::MAX;
 
 /// Update subresources
 //
-/// This is mimicking stack allocation implementation, but since Rust doesn't
-/// have const generics, I think only way is to allocate in heap.
-pub fn update_subresources(
+/// This is mimicking stack allocation implementation
+pub fn update_subresources<const MAX_SUBRESOURCES: usize>(
     list: &ID3D12GraphicsCommandList,
     dest_resource: &ID3D12Resource,
     intermediate: &ID3D12Resource,
@@ -467,18 +465,14 @@ pub fn update_subresources(
     first_subresource: u32,
     num_subresources: u32,
     p_src_data: *mut D3D12_SUBRESOURCE_DATA,
-    max_subresources: usize,
 ) -> ::windows::Result<u64> {
-    // Stack alloc implementation but with vecs
+    // Stack alloc implementation
     // https://github.com/microsoft/DirectX-Graphics-Samples/blob/58b6bb18b928d79e5bd4e5ba53b274bdf6eb39e5/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h#L2118-L2140
     let src_data = unsafe { std::slice::from_raw_parts_mut(p_src_data, num_subresources as _) };
     let mut required_size = 0;
-    let mut layouts_vec = vec![D3D12_PLACED_SUBRESOURCE_FOOTPRINT::default(); max_subresources];
-    let layouts = layouts_vec.as_mut_slice();
-    let mut num_rows_vec = vec![0; max_subresources];
-    let num_rows = num_rows_vec.as_mut_slice();
-    let mut row_sizes_in_bytes_vec = vec![0; max_subresources];
-    let row_sizes_in_bytes = row_sizes_in_bytes_vec.as_mut_slice();
+    let mut layouts = [D3D12_PLACED_SUBRESOURCE_FOOTPRINT::default(); MAX_SUBRESOURCES];
+    let mut num_rows = [0; MAX_SUBRESOURCES];
+    let mut row_sizes_in_bytes = [0; MAX_SUBRESOURCES];
     let desc = unsafe { dest_resource.GetDesc() };
     unsafe {
         let dest_device = {
