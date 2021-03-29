@@ -174,11 +174,11 @@ impl Camera {
 
         XMStoreFloat4x4(
             &mut view,
-            XMMatrixTranspose(XMMatrixLookAtRH(self.eye, self.at, self.up)),
+            XMMatrixTranspose(XMMatrixLookAtLH(self.eye, self.at, self.up)),
         );
         XMStoreFloat4x4(
             &mut proj,
-            XMMatrixTranspose(XMMatrixPerspectiveFovRH(fov_angle_y, ar, near_z, far_z)),
+            XMMatrixTranspose(XMMatrixPerspectiveFovLH(fov_angle_y, ar, near_z, far_z)),
         );
         (proj, view)
     }
@@ -759,7 +759,7 @@ impl Window {
         };
 
         let camera = Camera {
-            eye: XMVectorSet(15.0, -15.0, 30.0, 0.0),
+            eye: XMVectorSet(15.0, 15.0, -30.0, 0.0),
             at: XMVectorSet(0.0, 0.0, 0.0, 0.0),
             up: XMVectorSet(0.0, 1.0, 0.0, 0.0),
         };
@@ -1108,7 +1108,7 @@ impl Window {
 
     pub fn pan(&mut self, dx: f32, dy: f32) {
         self.camera.rotate_yaw(dx * 0.005);
-        self.camera.rotate_pitch(dy * -0.005);
+        self.camera.rotate_pitch(dy * 0.005);
         self.frame().unwrap();
     }
 }
