@@ -1,7 +1,7 @@
 use bindings::{
     Windows::Win32::Direct3D11::*, Windows::Win32::Direct3D12::*, Windows::Win32::Direct3DHlsl::*,
     Windows::Win32::DirectComposition::*, Windows::Win32::DisplayDevices::*,
-    Windows::Win32::Dxgi::*, Windows::Win32::Gdi::*, Windows::Win32::HiDpi::*,
+    Windows::Win32::Dxgi::*, Windows::Win32::Gdi::*, /*Windows::Win32::HiDpi::*, */
     Windows::Win32::KeyboardAndMouseInput::*, Windows::Win32::MenusAndResources::*,
     Windows::Win32::SystemServices::*, Windows::Win32::WindowsAndMessaging::*,
 };
