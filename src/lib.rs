@@ -108,6 +108,8 @@ pub fn create_default_buffer(
 //     shader_visibility: D3D12_SHADER_VISIBILITY,
 // }
 
+// TODO: UploadBuffer but like array with MutIndex or Index impl
+
 #[derive(Debug)]
 pub struct UploadBuffer<T: Sized> {
     buffer: ID3D12Resource,
@@ -539,8 +541,7 @@ fn update_subresources_stack_alloc_raw<const MAX_SUBRESOURCES: usize>(
         let mut dest_data = D3D12_MEMCPY_DEST {
             pData: ((p_data as u64) + layouts[i].Offset) as *mut _,
             RowPitch: layouts[i].Footprint.RowPitch as _,
-            SlicePitch: mem::size_of_val(&layouts[i].Footprint.RowPitch)
-                * mem::size_of_val(&num_rows[i]),
+            SlicePitch: (layouts[i].Footprint.RowPitch as usize) * (num_rows[i] as usize),
         };
         memcpy_subresource(
             &mut dest_data,
