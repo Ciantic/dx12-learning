@@ -68,10 +68,15 @@ struct FrameResource {
     list: ID3D12GraphicsCommandList,
     scene_cb: UploadBuffer<SceneConstantBuffer>,
     object_cb: UploadBuffer<ObjectConstantBuffer>,
+    rtv: D3D12_CPU_DESCRIPTOR_HANDLE,
 }
 
 impl FrameResource {
-    pub fn new(device: &ID3D12Device, pso: &ID3D12PipelineState) -> Self {
+    pub fn new(
+        device: &ID3D12Device,
+        pso: &ID3D12PipelineState,
+        rtv: D3D12_CPU_DESCRIPTOR_HANDLE,
+    ) -> Self {
         // Create allocator for the frame
         let allocator = unsafe {
             let mut ptr: Option<ID3D12CommandAllocator> = None;
@@ -137,6 +142,7 @@ impl FrameResource {
             list,
             scene_cb,
             object_cb,
+            rtv,
         }
     }
 
@@ -215,7 +221,6 @@ struct Window {
     comp_target: IDCompositionTarget,
     comp_visual: IDCompositionVisual,
     rtv_desc_heap: ID3D12DescriptorHeap,
-    rtv_desc_size: usize,
     back_buffers: [ID3D12Resource; NUM_OF_FRAMES],
     depth_stencil_heap: ID3D12DescriptorHeap,
     depth_stencil_buffer: ID3D12Resource,
@@ -794,7 +799,13 @@ impl Window {
 
         // Create constant buffer resources
         let frame_resources: [FrameResource; NUM_OF_FRAMES] = (0..NUM_OF_FRAMES)
-            .map(|_| FrameResource::new(&device, &pipeline_state))
+            .map(|index| {
+                FrameResource::new(&device, &pipeline_state, unsafe {
+                    let mut rtv = rtv_desc_heap.GetCPUDescriptorHandleForHeapStart();
+                    rtv.ptr += rtv_desc_size * index;
+                    rtv
+                })
+            })
             .collect::<Vec<_>>()
             .try_into()
             .expect("Unable to create frame resources");
@@ -936,7 +947,6 @@ impl Window {
             comp_target,
             comp_visual,
             rtv_desc_heap,
-            rtv_desc_size,
             back_buffers,
             depth_stencil_heap,
             depth_stencil_buffer,
@@ -972,14 +982,10 @@ impl Window {
         unsafe {
             // Get the current backbuffer on which to draw
             let frame_resource = &self.frame_resources[self.current_frame];
-            let current_back_buffer = &self.back_buffers[self.current_frame];
+            let back_buffer = &self.back_buffers[self.current_frame];
             let allocator = &frame_resource.allocator;
             let list = &frame_resource.list;
-            let rtv = {
-                let mut ptr = self.rtv_desc_heap.GetCPUDescriptorHandleForHeapStart();
-                ptr.ptr += self.rtv_desc_size * self.current_frame;
-                ptr
-            };
+            let rtv = &frame_resource.rtv;
             let dsv = self.depth_stencil_heap.GetCPUDescriptorHandleForHeapStart();
 
             // Reset allocator
@@ -997,7 +1003,7 @@ impl Window {
             list.ResourceBarrier(
                 1,
                 &cd3dx12_resource_barrier_transition(
-                    current_back_buffer,
+                    back_buffer,
                     D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT,
                     D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET,
                     None,
@@ -1015,7 +1021,7 @@ impl Window {
                 0,
                 null_mut(),
             );
-            list.OMSetRenderTargets(1, &rtv, false, &dsv);
+            list.OMSetRenderTargets(1, rtv, false, &dsv);
 
             list.ClearRenderTargetView(rtv, [1.0f32, 0.2, 0.4, 0.5].as_ptr(), 0, null_mut());
             list.IASetPrimitiveTopology(
@@ -1025,15 +1031,11 @@ impl Window {
             list.IASetVertexBuffers(0, 1, &self.vertex_buffer_view);
             list.SetGraphicsRootConstantBufferView(
                 0,
-                self.frame_resources[self.current_frame]
-                    .scene_cb
-                    .gpu_virtual_address(),
+                frame_resource.scene_cb.gpu_virtual_address(),
             );
             list.SetGraphicsRootConstantBufferView(
                 1,
-                self.frame_resources[self.current_frame]
-                    .object_cb
-                    .gpu_virtual_address(),
+                frame_resource.object_cb.gpu_virtual_address(),
             );
             list.DrawIndexedInstanced(36, 1, 0, 0, 0);
 
@@ -1041,7 +1043,7 @@ impl Window {
             list.ResourceBarrier(
                 1,
                 &cd3dx12_resource_barrier_transition(
-                    current_back_buffer,
+                    back_buffer,
                     D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_RENDER_TARGET,
                     D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PRESENT,
                     None,
