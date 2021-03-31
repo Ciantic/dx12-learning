@@ -68,15 +68,10 @@ struct FrameResource {
     list: ID3D12GraphicsCommandList,
     scene_cb: UploadBuffer<SceneConstantBuffer>,
     object_cb: UploadBuffer<ObjectConstantBuffer>,
-    rtv: D3D12_CPU_DESCRIPTOR_HANDLE,
 }
 
 impl FrameResource {
-    pub fn new(
-        device: &ID3D12Device,
-        pso: &ID3D12PipelineState,
-        rtv: D3D12_CPU_DESCRIPTOR_HANDLE,
-    ) -> Self {
+    pub fn new(device: &ID3D12Device, pso: &ID3D12PipelineState) -> Self {
         // Create allocator for the frame
         let allocator = unsafe {
             let mut ptr: Option<ID3D12CommandAllocator> = None;
@@ -142,7 +137,6 @@ impl FrameResource {
             list,
             scene_cb,
             object_cb,
-            rtv,
         }
     }
 
@@ -220,8 +214,8 @@ struct Window {
     current_frame: usize,
     comp_target: IDCompositionTarget,
     comp_visual: IDCompositionVisual,
-    rtv_desc_heap: ID3D12DescriptorHeap,
-    back_buffers: [ID3D12Resource; NUM_OF_FRAMES],
+    back_buffer_rtv_heap: ID3D12DescriptorHeap,
+    back_buffers: [(ID3D12Resource, D3D12_CPU_DESCRIPTOR_HANDLE); NUM_OF_FRAMES],
     depth_stencil_heap: ID3D12DescriptorHeap,
     depth_stencil_buffer: ID3D12Resource,
     root_signature: ID3D12RootSignature,
@@ -368,8 +362,8 @@ impl Window {
             comp_device.Commit().ok()?;
         }
 
-        // Create descriptor heap for render target views
-        let rtv_desc_heap = unsafe {
+        // Create descriptor heap for back buffer render target views
+        let back_buffer_rtv_heap = unsafe {
             let desc = D3D12_DESCRIPTOR_HEAP_DESC {
                 Type: D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
                 NumDescriptors: NUM_OF_FRAMES as _,
@@ -382,37 +376,42 @@ impl Window {
                 .and_some(ptr)
         }?;
 
-        // Create resource per frame
-        let mut descriptor = unsafe { rtv_desc_heap.GetCPUDescriptorHandleForHeapStart() };
-        let rtv_desc_size = unsafe {
-            device.GetDescriptorHandleIncrementSize(
-                D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-            ) as usize
+        // Create back buffers with their rtvs
+        let back_buffers = {
+            let rtv = unsafe { back_buffer_rtv_heap.GetCPUDescriptorHandleForHeapStart() };
+            let rtv_desc_size = unsafe {
+                device.GetDescriptorHandleIncrementSize(
+                    D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+                ) as usize
+            };
+
+            (0..NUM_OF_FRAMES)
+                .map(|i| {
+                    let mut rtv = rtv.clone();
+                    rtv.ptr += rtv_desc_size * i;
+
+                    let resource = unsafe {
+                        let mut ptr: Option<ID3D12Resource> = None;
+                        swap_chain
+                            .GetBuffer(i as _, &ID3D12Resource::IID, ptr.set_abi())
+                            .and_some(ptr)
+                    }?;
+
+                    unsafe {
+                        // let desc = D3D12_TEX2D_RTV {
+                        //     Format: DXGI_FORMAT_R8G8B8A8_UNORM,
+                        //     u: D3D12_RTV_DIMENSION_UNKNOWN as _,
+                        //     ViewDimension: 0,
+                        // };
+                        device.CreateRenderTargetView(&resource, 0 as _, &rtv);
+                    }
+
+                    Ok((resource, rtv))
+                })
+                .collect::<Result<Vec<_>, windows::ErrorCode>>()?
+                .try_into()
+                .expect("Unable to create resources")
         };
-        let back_buffers = (0..NUM_OF_FRAMES)
-            .map(|i| {
-                let resource = unsafe {
-                    let mut ptr: Option<ID3D12Resource> = None;
-                    swap_chain
-                        .GetBuffer(i as _, &ID3D12Resource::IID, ptr.set_abi())
-                        .and_some(ptr)
-                }?;
-
-                unsafe {
-                    // let desc = D3D12_TEX2D_RTV {
-                    //     Format: DXGI_FORMAT_R8G8B8A8_UNORM,
-                    //     u: D3D12_RTV_DIMENSION_UNKNOWN as _,
-                    //     ViewDimension: 0,
-                    // };
-                    device.CreateRenderTargetView(&resource, 0 as _, &descriptor);
-                    descriptor.ptr += rtv_desc_size;
-                }
-
-                Ok(resource)
-            })
-            .collect::<Result<Vec<_>, windows::ErrorCode>>()?
-            .try_into()
-            .expect("Unable to create resources");
 
         // Create depth/stencil heap
         let depth_stencil_heap = unsafe {
@@ -799,13 +798,7 @@ impl Window {
 
         // Create constant buffer resources
         let frame_resources: [FrameResource; NUM_OF_FRAMES] = (0..NUM_OF_FRAMES)
-            .map(|index| {
-                FrameResource::new(&device, &pipeline_state, unsafe {
-                    let mut rtv = rtv_desc_heap.GetCPUDescriptorHandleForHeapStart();
-                    rtv.ptr += rtv_desc_size * index;
-                    rtv
-                })
-            })
+            .map(|_| FrameResource::new(&device, &pipeline_state))
             .collect::<Vec<_>>()
             .try_into()
             .expect("Unable to create frame resources");
@@ -946,7 +939,7 @@ impl Window {
             current_frame,
             comp_target,
             comp_visual,
-            rtv_desc_heap,
+            back_buffer_rtv_heap,
             back_buffers,
             depth_stencil_heap,
             depth_stencil_buffer,
@@ -982,10 +975,9 @@ impl Window {
         unsafe {
             // Get the current backbuffer on which to draw
             let frame_resource = &self.frame_resources[self.current_frame];
-            let back_buffer = &self.back_buffers[self.current_frame];
+            let (back_buffer, back_buffer_rtv) = &self.back_buffers[self.current_frame];
             let allocator = &frame_resource.allocator;
             let list = &frame_resource.list;
-            let rtv = &frame_resource.rtv;
             let dsv = self.depth_stencil_heap.GetCPUDescriptorHandleForHeapStart();
 
             // Reset allocator
@@ -1021,9 +1013,14 @@ impl Window {
                 0,
                 null_mut(),
             );
-            list.OMSetRenderTargets(1, rtv, false, &dsv);
+            list.OMSetRenderTargets(1, back_buffer_rtv, false, &dsv);
 
-            list.ClearRenderTargetView(rtv, [1.0f32, 0.2, 0.4, 0.5].as_ptr(), 0, null_mut());
+            list.ClearRenderTargetView(
+                back_buffer_rtv,
+                [1.0f32, 0.2, 0.4, 0.5].as_ptr(),
+                0,
+                null_mut(),
+            );
             list.IASetPrimitiveTopology(
                 D3D_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
             );
