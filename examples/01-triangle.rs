@@ -71,13 +71,15 @@ impl Window {
         // Start "DebugView" to listen errors
         // https://docs.microsoft.com/en-us/sysinternals/downloads/debugview
         let debug = unsafe {
-            let mut ptr: Option<ID3D12Debug> = None;
-            D3D12GetDebugInterface(&ID3D12Debug::IID, ptr.set_abi()).and_some(ptr)
+            let mut ptr: Option<ID3D12Debug1> = None;
+            D3D12GetDebugInterface(&ID3D12Debug1::IID, ptr.set_abi()).and_some(ptr)
         }
         .expect("Unable to create debug layer");
 
         unsafe {
             debug.EnableDebugLayer();
+            debug.SetEnableGPUBasedValidation(true);
+            debug.SetEnableSynchronizedCommandQueueValidation(true);
         }
 
         let factory = unsafe {
@@ -440,7 +442,7 @@ impl Window {
             if fence_event.0 == 0 {
                 panic!("Unable to create fence event");
             }
-            (fence, [0; NUM_OF_FRAMES], fence_event)
+            (fence, [1; NUM_OF_FRAMES], fence_event)
         };
 
         let viewport = D3D12_VIEWPORT {
