@@ -726,7 +726,7 @@ fn main() {
             style: WNDCLASS_STYLES::CS_HREDRAW | WNDCLASS_STYLES::CS_VREDRAW,
             lpfnWndProc: Some(wndproc),
             hInstance: instance,
-            lpszClassName: PSTR(b"CompositionCls\0".as_ptr() as _),
+            lpszClassName: PSTR(b"Dx12LearningCls\0".as_ptr() as _),
             cbClsExtra: 0,
             cbWndExtra: 0,
             hIcon: HICON(0),
@@ -737,8 +737,8 @@ fn main() {
         RegisterClassA(&cls);
         let hwnd = CreateWindowExA(
             WINDOW_EX_STYLE::WS_EX_NOREDIRECTIONBITMAP as _,
-            PSTR(b"CompositionCls\0".as_ptr() as _),
-            PSTR(b"Composition example\0".as_ptr() as _),
+            PSTR(b"Dx12LearningCls\0".as_ptr() as _),
+            PSTR(b"Triangle example\0".as_ptr() as _),
             WINDOW_STYLE::WS_OVERLAPPEDWINDOW | WINDOW_STYLE::WS_VISIBLE,
             -2147483648 as _, // Where is CW_USEDEFAULT? I just hardcoded the value
             -2147483648 as _,
