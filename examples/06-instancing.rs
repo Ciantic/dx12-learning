@@ -14,7 +14,7 @@ use dx12_common::{
 };
 use std::{borrow::BorrowMut, ptr::null_mut};
 use std::{convert::TryInto, ffi::CString};
-use windows::{Abi, IUnknown, Interface};
+use windows::{Abi, Interface};
 
 const NUM_OF_FRAMES: usize = 3;
 
