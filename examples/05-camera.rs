@@ -121,8 +121,13 @@ impl FrameResource {
                 world: {
                     // Cube is sized 10x10x10, and placed in the origo
                     let world = XMMatrixIdentity();
+
+                    // transpose(Scaling * Rotation * Translation)
                     let world = XMMatrixMultiply(world, &XMMatrixScaling(10.0, 10.0, 10.0));
-                    let world = XMMatrixMultiply(world, &XMMatrixTranslation(0.0, 0.0, 0.0));
+                    // let world = XMMatrixMultiply(world, &(XMMatrixRotationZ(XM_PIDIV4)));
+                    // let world = XMMatrixMultiply(world, &(XMMatrixTranslation(-10.0, 0.0, 0.0)));
+                    let world = XMMatrixTranspose(world);
+
                     let mut out: XMFLOAT4X4 = unsafe { std::mem::zeroed() };
                     XMStoreFloat4x4(&mut out, world);
                     out
