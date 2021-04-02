@@ -121,6 +121,8 @@ impl<T: Sized> UploadBuffer<T> {
     pub fn new(device: &ID3D12Device, init_data: &T) -> ::windows::Result<UploadBuffer<T>> {
         unsafe {
             let value_size = std::mem::size_of::<T>();
+
+            // TODO: Alignment size is required only true for constant buffers
             let aligned_size = (value_size + 255) & !255;
 
             // Generic way to create upload buffer and get address:
