@@ -185,6 +185,8 @@ impl Camera {
         let mut view: XMFLOAT4X4 = unsafe { std::mem::zeroed() };
         let mut proj: XMFLOAT4X4 = unsafe { std::mem::zeroed() };
 
+        // The DirectX math (XMMATRIX) acts on row-major matrices and
+        // transposing it changes it to column-major format for HLSL
         XMStoreFloat4x4(
             &mut view,
             XMMatrixTranspose(XMMatrixLookAtLH(self.eye, self.at, self.up)),
@@ -963,6 +965,10 @@ impl Window {
                                 world,
                                 &XMMatrixTranslation(20.0 * col - 90.0, 0.0, 20.0 * row - 90.0),
                             );
+
+                            // The DirectX math (XMMATRIX) acts on row-major
+                            // matrices and transposing it changes it to
+                            // column-major format for HLSL
                             let world = XMMatrixTranspose(world);
                             let mut out: XMFLOAT4X4 = std::mem::zeroed();
                             XMStoreFloat4x4(&mut out, world);
