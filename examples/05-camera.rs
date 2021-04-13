@@ -421,7 +421,7 @@ impl Window {
 
                     Ok((resource, rtv))
                 })
-                .collect::<Result<Vec<_>, windows::ErrorCode>>()?
+                .collect::<Result<Vec<_>, windows::Error>>()?
                 .try_into()
                 .expect("Unable to create resources")
         };
@@ -1245,7 +1245,7 @@ fn main() {
 
         /*
         while message.message != WM_QUIT {
-            if PeekMessageA(&mut message, HWND(0), 0, 0, PeekMessage_wRemoveMsg::PM_REMOVE).into() {
+            if PeekMessageA(&mut message, HWND(0), 0, 0, PEEK_MESSAGE_REMOVE_TYPE::PM_REMOVE).into() {
                 TranslateMessage(&message);
                 DispatchMessageA(&message);
             } else {

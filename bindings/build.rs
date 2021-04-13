@@ -16,7 +16,7 @@ fn main() {
             TranslateMessage,
             RegisterClassA, LoadCursorW, ShowCursor, SetCursor, SetCursorPos, ClipCursor, HWND, LPARAM, MSG, WNDCLASSA, WPARAM,
             IDC_ARROW, IDC_HAND, IDC_SIZEALL, WM_CREATE, CW_USEDEFAULT,
-            WM_DESTROY, WM_PAINT, WM_QUIT, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WINDOW_EX_STYLE, WNDCLASS_STYLES, PeekMessage_wRemoveMsg
+            WM_DESTROY, WM_PAINT, WM_QUIT, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WINDOW_EX_STYLE, WNDCLASS_STYLES, PEEK_MESSAGE_REMOVE_TYPE
         },
         Windows::Win32::SystemServices::{
             GetModuleHandleA, HINSTANCE, LRESULT, CreateEventA, WaitForSingleObject, WaitForSingleObjectEx

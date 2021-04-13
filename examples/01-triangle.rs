@@ -232,7 +232,7 @@ impl Window {
 
                 Ok(resource)
             })
-            .collect::<Result<Vec<_>, windows::ErrorCode>>()?
+            .collect::<Result<Vec<_>, windows::Error>>()?
             .try_into()
             .expect("Unable to create resources");
 
