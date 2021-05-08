@@ -2,11 +2,12 @@
 /// CD3DX12 Helper functions from here:
 /// https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle/d3dx12.h
 use bindings::{
-    Windows::Win32::Direct3D12::*, Windows::Win32::Direct3DHlsl::*,
-    Windows::Win32::DirectComposition::*, Windows::Win32::DisplayDevices::*,
-    Windows::Win32::Dxgi::*, Windows::Win32::Gdi::*, Windows::Win32::HiDpi::*,
-    Windows::Win32::KeyboardAndMouseInput::*, Windows::Win32::MenusAndResources::*,
-    Windows::Win32::SystemServices::*, Windows::Win32::WindowsAndMessaging::*,
+    Windows::Win32::Graphics::Direct3D11::*, Windows::Win32::Graphics::Direct3D12::*,
+    Windows::Win32::Graphics::DirectComposition::*, Windows::Win32::Graphics::Dxgi::*,
+    Windows::Win32::Graphics::Gdi::*, Windows::Win32::Graphics::Hlsl::*,
+    Windows::Win32::System::SystemServices::*, Windows::Win32::System::Threading::*,
+    Windows::Win32::UI::DisplayDevices::*, Windows::Win32::UI::MenusAndResources::*,
+    Windows::Win32::UI::WindowsAndMessaging::*,
 };
 use directx_math::*;
 use std::{convert::TryInto, ffi::CString, mem};
@@ -28,33 +29,23 @@ pub fn create_default_buffer(
     data: &[u8],
 ) -> ::windows::Result<Buffers> {
     let default_buffer = unsafe {
-        let mut ptr: Option<ID3D12Resource> = None;
-        device
-            .CreateCommittedResource(
-                &cd3dx12_heap_properties_with_type(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT),
-                D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
-                &cd3dx12_resource_desc_buffer(data.len() as _, None, None),
-                D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON,
-                null_mut(),
-                &ID3D12Resource::IID,
-                ptr.set_abi(),
-            )
-            .and_some(ptr)
+        device.CreateCommittedResource::<ID3D12Resource>(
+            &cd3dx12_heap_properties_with_type(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT),
+            D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+            &cd3dx12_resource_desc_buffer(data.len() as _, None, None),
+            D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON,
+            null_mut(),
+        )
     }?;
 
     let upload_buffer = unsafe {
-        let mut ptr: Option<ID3D12Resource> = None;
-        device
-            .CreateCommittedResource(
-                &cd3dx12_heap_properties_with_type(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD),
-                D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
-                &cd3dx12_resource_desc_buffer(data.len() as _, None, None),
-                D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ,
-                null_mut(),
-                &ID3D12Resource::IID,
-                ptr.set_abi(),
-            )
-            .and_some(ptr)
+        device.CreateCommittedResource::<ID3D12Resource>(
+            &cd3dx12_heap_properties_with_type(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD),
+            D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+            &cd3dx12_resource_desc_buffer(data.len() as _, None, None),
+            D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ,
+            null_mut(),
+        )
     }?;
 
     unsafe {
@@ -126,18 +117,14 @@ impl<T: Sized> UploadBuffer<T> {
             let aligned_size = (value_size + 255) & !255;
 
             // Generic way to create upload buffer and get address:
-            let mut ptr: Option<ID3D12Resource> = None;
             let buffer = device
-                .CreateCommittedResource(
+                .CreateCommittedResource::<ID3D12Resource>(
                     &cd3dx12_heap_properties_with_type(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD),
                     D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
                     &cd3dx12_resource_desc_buffer(aligned_size as _, None, None),
                     D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ,
                     std::ptr::null(),
-                    &ID3D12Resource::IID,
-                    ptr.set_abi(),
                 )
-                .and_some(ptr)
                 .expect("Unable to create constant buffer resource");
 
             // Notice that the memory location is left mapped
@@ -224,18 +211,13 @@ pub fn create_upload_buffer(
                 Quality: 0,
             },
         };
-        let mut ptr: Option<ID3D12Resource> = None;
-        let resource = device
-            .CreateCommittedResource(
-                &props,
-                D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
-                &desc,
-                D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ,
-                null_mut(),
-                &ID3D12Resource::IID,
-                ptr.set_abi(),
-            )
-            .and_some(ptr)?;
+        let resource = device.CreateCommittedResource::<ID3D12Resource>(
+            &props,
+            D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+            &desc,
+            D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_GENERIC_READ,
+            null_mut(),
+        )?;
 
         let mut gpu_data: *mut u8 = null_mut();
         resource
@@ -498,12 +480,7 @@ fn update_subresources_stack_alloc_raw<const MAX_SUBRESOURCES: usize>(
     let mut row_sizes_in_bytes = [0; MAX_SUBRESOURCES];
     let desc = unsafe { dest_resource.GetDesc() };
     unsafe {
-        let dest_device = {
-            let mut ptr: Option<ID3D12Device> = None;
-            dest_resource
-                .GetDevice(&ID3D12Device::IID, ptr.set_abi())
-                .and_some(ptr)
-        }?;
+        let dest_device = { dest_resource.GetDevice::<ID3D12Device>() }?;
         dest_device.GetCopyableFootprints(
             &desc,
             first_subresource,

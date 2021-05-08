@@ -15,9 +15,9 @@ checksum = "fb58b6451e8c2a812ad979ed1d83378caa5e927eef2622017a45f251457c2c9d"
 
 [[package]]
 name = "directx_math"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5eef899a5213fad97e095a4695d21cd4398a3e393fe0825954135e27f9da7bc4"
+checksum = "b80b68043b3d122ce8a8fd6cba0803d6c92746a472f006e2278fc0d5262f2183"
 
 [[package]]
 name = "dx12-common"
@@ -48,9 +48,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.69"
+version = "1.0.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48fe99c6bd8b1cc636890bcc071842de909d902c81ac7dab53ba33c421ab8ffb"
+checksum = "a1e8cdbefb79a9a5a65e0db8b47b723ee907b7c7f8496c76a1770b5c310bab82"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -59,14 +59,14 @@ dependencies = [
 
 [[package]]
 name = "unicode-xid"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
+checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
 
 [[package]]
 name = "windows"
-version = "0.8.0"
-source = "git+https://github.com/microsoft/windows-rs#6d9b8c1279b5410a30b13db2cdd7d412d1252a09"
+version = "0.9.1"
+source = "git+https://github.com/microsoft/windows-rs#a2a980fbaa399a2f4f79e35624fa0f20a0f72b00"
 dependencies = [
  "const-sha1",
  "windows_gen",
@@ -75,16 +75,13 @@ dependencies = [
 
 [[package]]
 name = "windows_gen"
-version = "0.8.0"
-source = "git+https://github.com/microsoft/windows-rs#6d9b8c1279b5410a30b13db2cdd7d412d1252a09"
-dependencies = [
- "syn",
-]
+version = "0.9.1"
+source = "git+https://github.com/microsoft/windows-rs#a2a980fbaa399a2f4f79e35624fa0f20a0f72b00"
 
 [[package]]
 name = "windows_macros"
-version = "0.8.0"
-source = "git+https://github.com/microsoft/windows-rs#6d9b8c1279b5410a30b13db2cdd7d412d1252a09"
+version = "0.9.1"
+source = "git+https://github.com/microsoft/windows-rs#a2a980fbaa399a2f4f79e35624fa0f20a0f72b00"
 dependencies = [
  "syn",
  "windows_gen",

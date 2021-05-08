@@ -1,27 +1,30 @@
 fn main() {
     windows::build!(
-        Windows::Win32::Direct3D11::{ID3DBlob},
-        Windows::Win32::Direct3D12::*,
-        Windows::Win32::Direct3DHlsl::*,
-        Windows::Win32::Dxgi::*,
-        Windows::Win32::DisplayDevices::{RECT},
-        Windows::Win32::HiDpi::{SetProcessDpiAwareness, PROCESS_DPI_AWARENESS},
-        Windows::Win32::Gdi::{ValidateRect, ClientToScreen},
-        Windows::Win32::MenusAndResources::{HMENU, HICON},
-        Windows::Win32::KeyboardAndMouseInput::{
+        Windows::Win32::Graphics::Direct3D11::{ID3DBlob},
+        Windows::Win32::Graphics::Direct3D12::*,
+        Windows::Win32::Graphics::Hlsl::*,
+        Windows::Win32::Graphics::Dxgi::*,
+        Windows::Win32::UI::DisplayDevices::{RECT},
+        Windows::Win32::UI::HiDpi::{SetProcessDpiAwareness, PROCESS_DPI_AWARENESS},
+        Windows::Win32::Graphics::Gdi::{ValidateRect, ClientToScreen},
+        Windows::Win32::UI::MenusAndResources::{HMENU, HICON},
+        Windows::Win32::UI::KeyboardAndMouseInput::{
             SetCapture, ReleaseCapture
         },
-        Windows::Win32::WindowsAndMessaging::{
+        Windows::Win32::UI::WindowsAndMessaging::{
             CreateWindowExA, DefWindowProcA, DispatchMessageA, GetMessageA, PostQuitMessage, PeekMessageA,
             TranslateMessage,
             RegisterClassA, LoadCursorW, ShowCursor, SetCursor, SetCursorPos, ClipCursor, HWND, LPARAM, MSG, WNDCLASSA, WPARAM,
             IDC_ARROW, IDC_HAND, IDC_SIZEALL, WM_CREATE, CW_USEDEFAULT,
             WM_DESTROY, WM_PAINT, WM_QUIT, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WINDOW_EX_STYLE, WNDCLASS_STYLES, PEEK_MESSAGE_REMOVE_TYPE
         },
-        Windows::Win32::SystemServices::{
-            GetModuleHandleA, HINSTANCE, LRESULT, CreateEventA, WaitForSingleObject, WaitForSingleObjectEx
+        Windows::Win32::System::SystemServices::{
+            GetModuleHandleA, HINSTANCE, LRESULT
         },
-        Windows::Win32::DirectComposition::{IDCompositionDevice, IDCompositionTarget, IDCompositionVisual, DCompositionCreateDevice}
+        Windows::Win32::System::Threading::{
+            CreateEventA, WaitForSingleObject, WaitForSingleObjectEx
+        },
+        Windows::Win32::Graphics::DirectComposition::{IDCompositionDevice, IDCompositionTarget, IDCompositionVisual, DCompositionCreateDevice}
     );
 }
 

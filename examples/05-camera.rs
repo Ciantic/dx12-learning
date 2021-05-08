@@ -1,9 +1,10 @@
 use bindings::{
-    Windows::Win32::Direct3D11::*, Windows::Win32::Direct3D12::*, Windows::Win32::Direct3DHlsl::*,
-    Windows::Win32::DirectComposition::*, Windows::Win32::DisplayDevices::*,
-    Windows::Win32::Dxgi::*, Windows::Win32::Gdi::*, /*Windows::Win32::HiDpi::*, */
-    Windows::Win32::KeyboardAndMouseInput::*, Windows::Win32::MenusAndResources::*,
-    Windows::Win32::SystemServices::*, Windows::Win32::WindowsAndMessaging::*,
+    Windows::Win32::Graphics::Direct3D11::*, Windows::Win32::Graphics::Direct3D12::*,
+    Windows::Win32::Graphics::DirectComposition::*, Windows::Win32::Graphics::Dxgi::*,
+    Windows::Win32::Graphics::Gdi::*, Windows::Win32::Graphics::Hlsl::*,
+    Windows::Win32::System::SystemServices::*, Windows::Win32::System::Threading::*,
+    Windows::Win32::UI::DisplayDevices::*, Windows::Win32::UI::KeyboardAndMouseInput::*,
+    Windows::Win32::UI::MenusAndResources::*, Windows::Win32::UI::WindowsAndMessaging::*,
 };
 
 use directx_math::*;
@@ -14,7 +15,7 @@ use dx12_common::{
 };
 use std::{borrow::BorrowMut, ptr::null_mut};
 use std::{convert::TryInto, ffi::CString};
-use windows::{Abi, Interface};
+use windows::Interface;
 
 const NUM_OF_FRAMES: usize = 3;
 
@@ -74,30 +75,20 @@ impl FrameResource {
     pub fn new(device: &ID3D12Device, pso: &ID3D12PipelineState) -> Self {
         // Create allocator for the frame
         let allocator = unsafe {
-            let mut ptr: Option<ID3D12CommandAllocator> = None;
-            device
-                .CreateCommandAllocator(
-                    D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT,
-                    &ID3D12CommandAllocator::IID,
-                    ptr.set_abi(),
-                )
-                .and_some(ptr)
+            device.CreateCommandAllocator::<ID3D12CommandAllocator>(
+                D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT,
+            )
         }
         .expect("Unable to create allocator");
 
         // Create command list for the frame
-        let list = unsafe {
-            let mut ptr: Option<ID3D12GraphicsCommandList> = None;
-            device
-                .CreateCommandList(
-                    0,
-                    D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT,
-                    &allocator,
-                    pso,
-                    &ID3D12GraphicsCommandList::IID,
-                    ptr.set_abi(),
-                )
-                .and_some(ptr)
+        let list: ID3D12GraphicsCommandList = unsafe {
+            device.CreateCommandList(
+                0,
+                D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT,
+                &allocator,
+                pso,
+            )
         }
         .expect("Unable to create command list");
 
@@ -255,11 +246,8 @@ impl Window {
     pub fn new(hwnd: HWND) -> windows::Result<Self> {
         // Start "DebugView" to listen errors
         // https://docs.microsoft.com/en-us/sysinternals/downloads/debugview
-        let debug = unsafe {
-            let mut ptr: Option<ID3D12Debug1> = None;
-            D3D12GetDebugInterface(&ID3D12Debug1::IID, ptr.set_abi()).and_some(ptr)
-        }
-        .expect("Unable to create debug layer");
+        let debug = unsafe { D3D12GetDebugInterface::<ID3D12Debug1>() }
+            .expect("Unable to create debug layer");
 
         unsafe {
             debug.EnableDebugLayer();
@@ -267,10 +255,7 @@ impl Window {
             debug.SetEnableSynchronizedCommandQueueValidation(true);
         }
 
-        let factory = unsafe {
-            let mut ptr: Option<IDXGIFactory4> = None;
-            CreateDXGIFactory2(0, &IDXGIFactory4::IID, ptr.set_abi()).and_some(ptr)
-        }?;
+        let factory = unsafe { CreateDXGIFactory2::<IDXGIFactory4>(0) }?;
 
         let adapter = (0..99)
             .into_iter()
@@ -280,28 +265,21 @@ impl Window {
             })
             .expect("Could not find d3d adapter");
 
-        let device = unsafe {
-            let mut ptr: Option<ID3D12Device> = None;
+        let device: ID3D12Device = unsafe {
             D3D12CreateDevice(
                 &adapter, // None for default adapter
                 D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0,
-                &ID3D12Device::IID,
-                ptr.set_abi(),
             )
-            .and_some(ptr)
         }?;
 
         let queue = unsafe {
-            let mut ptr: Option<ID3D12CommandQueue> = None;
             let desc = D3D12_COMMAND_QUEUE_DESC {
                 Type: D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT,
                 Priority: D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_HIGH.0,
                 Flags: D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE,
                 NodeMask: 0,
             };
-            device
-                .CreateCommandQueue(&desc, &ID3D12CommandQueue::IID, ptr.set_abi())
-                .and_some(ptr)
+            device.CreateCommandQueue::<ID3D12CommandQueue>(&desc)
         }?;
 
         // let allocators: [ID3D12CommandAllocator; NUM_OF_FRAMES] = (0..NUM_OF_FRAMES)
@@ -321,10 +299,7 @@ impl Window {
         //     .expect("Unable to create allocators");
 
         // Composition device
-        let comp_device = unsafe {
-            let mut ptr: Option<IDCompositionDevice> = None;
-            DCompositionCreateDevice(None, &IDCompositionDevice::IID, ptr.set_abi()).and_some(ptr)
-        }?;
+        let comp_device: IDCompositionDevice = unsafe { DCompositionCreateDevice(None) }?;
 
         // Create swap chain for composition
         let swap_chain = unsafe {
@@ -383,10 +358,7 @@ impl Window {
                 Flags: D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
                 NodeMask: 0,
             };
-            let mut ptr: Option<ID3D12DescriptorHeap> = None;
-            device
-                .CreateDescriptorHeap(&desc, &ID3D12DescriptorHeap::IID, ptr.set_abi())
-                .and_some(ptr)
+            device.CreateDescriptorHeap::<ID3D12DescriptorHeap>(&desc)
         }?;
 
         // Create back buffers with their rtvs
@@ -403,12 +375,7 @@ impl Window {
                     let mut rtv = rtv.clone();
                     rtv.ptr += rtv_desc_size * i;
 
-                    let resource = unsafe {
-                        let mut ptr: Option<ID3D12Resource> = None;
-                        swap_chain
-                            .GetBuffer(i as _, &ID3D12Resource::IID, ptr.set_abi())
-                            .and_some(ptr)
-                    }?;
+                    let resource = unsafe { swap_chain.GetBuffer::<ID3D12Resource>(i as _) }?;
 
                     unsafe {
                         // let desc = D3D12_TEX2D_RTV {
@@ -434,53 +401,45 @@ impl Window {
                 Flags: D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
                 NodeMask: 0,
             };
-            let mut ptr: Option<ID3D12DescriptorHeap> = None;
-            device
-                .CreateDescriptorHeap(&desc, &ID3D12DescriptorHeap::IID, ptr.set_abi())
-                .and_some(ptr)
+            device.CreateDescriptorHeap::<ID3D12DescriptorHeap>(&desc)
         }?;
 
         // Create depth/stencil buffer
         let depth_stencil_buffer = unsafe {
-            let mut ptr: Option<ID3D12Resource> = None;
-            device
-                .CreateCommittedResource(
-                    &cd3dx12_heap_properties_with_type(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT),
-                    D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
-                    &D3D12_RESOURCE_DESC {
-                        Alignment: 0,
-                        Width: 1024,
-                        Height: 1024,
+            device.CreateCommittedResource::<ID3D12Resource>(
+                &cd3dx12_heap_properties_with_type(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_DEFAULT),
+                D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+                &D3D12_RESOURCE_DESC {
+                    Alignment: 0,
+                    Width: 1024,
+                    Height: 1024,
 
-                        // If DXGI_SWAP_CHAIN_DESC1::Stereo is TRUE (3d glasses
-                        // support) following array size needs to be 2:
-                        DepthOrArraySize: 1,
+                    // If DXGI_SWAP_CHAIN_DESC1::Stereo is TRUE (3d glasses
+                    // support) following array size needs to be 2:
+                    DepthOrArraySize: 1,
 
-                        MipLevels: 1,
-                        Dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-                        SampleDesc: DXGI_SAMPLE_DESC {
-                            Count: 1,
-                            Quality: 0,
-                        },
-                        Format: DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT,
-                        Flags: D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
-                        ..std::mem::zeroed()
+                    MipLevels: 1,
+                    Dimension: D3D12_RESOURCE_DIMENSION::D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+                    SampleDesc: DXGI_SAMPLE_DESC {
+                        Count: 1,
+                        Quality: 0,
                     },
-                    // D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON,
-                    D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE,
-                    &D3D12_CLEAR_VALUE {
-                        Format: DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT,
-                        Anonymous: D3D12_CLEAR_VALUE_0 {
-                            DepthStencil: D3D12_DEPTH_STENCIL_VALUE {
-                                Depth: 1.0,
-                                Stencil: 0,
-                            },
+                    Format: DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT,
+                    Flags: D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL,
+                    ..std::mem::zeroed()
+                },
+                // D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON,
+                D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                &D3D12_CLEAR_VALUE {
+                    Format: DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT,
+                    Anonymous: D3D12_CLEAR_VALUE_0 {
+                        DepthStencil: D3D12_DEPTH_STENCIL_VALUE {
+                            Depth: 1.0,
+                            Stencil: 0,
                         },
                     },
-                    &ID3D12Resource::IID,
-                    ptr.set_abi(),
-                )
-                .and_some(ptr)
+                },
+            )
         }?;
 
         unsafe {
@@ -587,16 +546,11 @@ impl Window {
                 })
             }?;
 
-            let mut ptr: Option<ID3D12RootSignature> = None;
-            device
-                .CreateRootSignature(
-                    0,
-                    root.GetBufferPointer(),
-                    root.GetBufferSize(),
-                    &ID3D12RootSignature::IID,
-                    ptr.set_abi(),
-                )
-                .and_some(ptr)
+            device.CreateRootSignature::<ID3D12RootSignature>(
+                0,
+                root.GetBufferPointer(),
+                root.GetBufferSize(),
+            )
         }?;
 
         // End of constant buffer changes ----------------------------------
@@ -728,39 +682,26 @@ impl Window {
             ..D3D12_GRAPHICS_PIPELINE_STATE_DESC::default()
         };
 
-        let pipeline_state = unsafe {
-            let mut ptr: Option<ID3D12PipelineState> = None;
-            device
-                .CreateGraphicsPipelineState(&pso_desc, &ID3D12PipelineState::IID, ptr.set_abi())
-                .and_some(ptr)
-        }
-        .expect("Unable to create pipeline state");
+        let pipeline_state =
+            unsafe { device.CreateGraphicsPipelineState::<ID3D12PipelineState>(&pso_desc) }
+                .expect("Unable to create pipeline state");
 
         let allocator = unsafe {
-            let mut ptr: Option<ID3D12CommandAllocator> = None;
             device
-                .CreateCommandAllocator(
+                .CreateCommandAllocator::<ID3D12CommandAllocator>(
                     D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT,
-                    &ID3D12CommandAllocator::IID,
-                    ptr.set_abi(),
                 )
-                .and_some(ptr)
                 .expect("Unable to create allocator")
         };
 
         // Create direct command list
-        let list = unsafe {
-            let mut ptr: Option<ID3D12GraphicsCommandList> = None;
-            device
-                .CreateCommandList(
-                    0,
-                    D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT,
-                    &allocator,
-                    &pipeline_state,
-                    &ID3D12GraphicsCommandList::IID,
-                    ptr.set_abi(),
-                )
-                .and_some(ptr)
+        let list: ID3D12GraphicsCommandList = unsafe {
+            device.CreateCommandList(
+                0,
+                D3D12_COMMAND_LIST_TYPE::D3D12_COMMAND_LIST_TYPE_DIRECT,
+                &allocator,
+                &pipeline_state,
+            )
         }?;
         unsafe {
             list.Close().ok()?;
@@ -793,15 +734,8 @@ impl Window {
 
         // Create fence
         let (fence, fence_value, fence_event) = unsafe {
-            let mut ptr: Option<ID3D12Fence> = None;
-            let fence = device
-                .CreateFence(
-                    0,
-                    D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE,
-                    &ID3D12Fence::IID,
-                    ptr.set_abi(),
-                )
-                .and_some(ptr)?;
+            let fence =
+                device.CreateFence::<ID3D12Fence>(0, D3D12_FENCE_FLAGS::D3D12_FENCE_FLAG_NONE)?;
             let fence_event = CreateEventA(null_mut(), false, false, PSTR(null_mut()));
             if fence_event.0 == 0 {
                 panic!("Unable to create fence event");
@@ -1201,7 +1135,7 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM)
 fn main() {
     unsafe {
         // SetProcessDpiAwareness(PROCESS_DPI_AWARENESS::PROCESS_PER_MONITOR_DPI_AWARE).unwrap();
-        let instance = HINSTANCE(GetModuleHandleA(PSTR(null_mut())));
+        let instance = GetModuleHandleA(None);
         let cursor = LoadCursorW(HINSTANCE(0), IDC_ARROW);
         let cls = WNDCLASSA {
             style: WNDCLASS_STYLES::CS_HREDRAW | WNDCLASS_STYLES::CS_VREDRAW,
